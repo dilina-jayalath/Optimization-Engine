@@ -1,0 +1,28 @@
+{
+  "name": "adaptive-ui-optimizer",
+  "version": "1.0.0",
+  "description": "Adaptive UI Optimization Engine with ML + RL + User Feedback",
+  "main": "engine/AdaptiveOptimizer.js",
+  "scripts": {
+    "backend": "node backend/api.js",
+    "dev": "nodemon backend/api.js",
+    "test": "node test/test.js",
+    "engine": "node examples/run-optimizer.js"
+  },
+  "keywords": [
+    "machine-learning",
+    "reinforcement-learning",
+    "q-learning",
+    "ui-optimization",
+    "adaptive",
+    "personalization"
+  ],
+  "author": "Your Organization",
+  "license": "Proprietary",
+  "type": "commonjs",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}

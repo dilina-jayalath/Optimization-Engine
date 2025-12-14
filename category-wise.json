@@ -1,0 +1,27 @@
+{
+  "user_id": "u_001",
+  "session_id": "s_00001",
+
+  "metadata": {
+    "origin": "category",
+    "created_at": "2025-10-06T11:00:00Z",
+    "confidence_overall": 0.65
+  },
+
+  "profile": {
+    "font_size": "large",
+    "line_height": 1.5,
+    "contrast_mode": "high",
+    "primary_color": "#1a73e8",
+    "secondary_color": "#1a73e8",
+    "accent_color": "#e37400",
+    "theme": "light",
+    "reduced_motion": true,
+    "element_spacing": "normal",
+    "target_size": 24,
+    "tooltip_assist": false,
+    "layout_simplification": false
+  },
+
+  "node_outputs": {}
+}
