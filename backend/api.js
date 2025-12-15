@@ -398,6 +398,8 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
     const { userId } = req.params;
     const { optimization, feedback, context } = req.body;
     
+    console.log('Received feedback data:', JSON.stringify({ optimization, feedback, context }, null, 2));
+    
     // Calculate reward based on feedback
     const rewardValue = {
       'positive': 1.0,
@@ -423,8 +425,10 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       context
     );
     
-    // Log event
-    await dbService.logEvent(userId, 'optimization_' + (feedback.type === 'positive' ? 'accepted' : 'rejected'), {
+    console.log('Saved feedback entry:', JSON.stringify(feedbackEntry, null, 2));
+    
+    // Log event (use 'applied' for positive, 'rejected' for negative/neutral)
+    await dbService.logEvent(userId, 'optimization_' + (feedback.type === 'positive' ? 'applied' : 'rejected'), {
       parameter: optimization.parameter,
       value: optimization.newValue,
       feedbackType: feedback.type
@@ -434,8 +438,33 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       success: true,
       data: {
         feedbackId: feedbackEntry._id,
-        reward: reward.value
+        reward: reward.value,
+        feedback: feedbackEntry
       }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/users/:userId/feedback
+ * Get user feedback history
+ */
+app.get('/api/users/:userId/feedback', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const { Feedback } = require('./mongodb/schemas');
+    const feedbackList = await Feedback.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    
+    res.json({
+      success: true,
+      data: feedbackList
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
