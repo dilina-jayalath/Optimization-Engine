@@ -1,0 +1,418 @@
+{
+	"info": {
+		"_postman_id": "f63a7083-e183-4045-afff-bc22cf8bc625",
+		"name": "Research",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "31410010"
+	},
+	"item": [
+		{
+			"name": "BACKEND",
+			"item": [
+				{
+					"name": "Create New User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userId\": \"u_001\", \"name\": \"Test User\", \"email\": \"test@example.com\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:5000/api/users",
+						"description": "Generated from cURL: curl -X POST http://localhost:5000/api/users `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"userId\\\": \\\"u_001\\\", \\\"name\\\": \\\"Test User\\\", \\\"email\\\": \\\"test@example.com\\\"}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/users/u_001",
+						"description": "Generated from cURL: curl http://localhost:5000/api/users/u_001"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/users",
+						"description": "Generated from cURL: curl http://localhost:5000/api/users"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Best Action for Parameter",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/users/u_001/qtables/fontSize/best-action?state={\"fontSize\":16,\"theme\":0,\"lineHeight\":1.5,\"contrast\":1.0,\"deviceType\":0,\"timeOfDay\":2,\"targetSize\":44}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"users",
+								"u_001",
+								"qtables",
+								"fontSize",
+								"best-action"
+							],
+							"query": [
+								{
+									"key": "state",
+									"value": "{\"fontSize\":16,\"theme\":0,\"lineHeight\":1.5,\"contrast\":1.0,\"deviceType\":0,\"timeOfDay\":2,\"targetSize\":44}"
+								}
+							]
+						},
+						"description": "Generated from cURL: curl \"http://localhost:5000/api/users/u_001/qtables/fontSize/best-action?state={\\\"fontSize\\\":16,\\\"theme\\\":0,\\\"lineHeight\\\":1.5,\\\"contrast\\\":1.0,\\\"deviceType\\\":0,\\\"timeOfDay\\\":2,\\\"targetSize\\\":44}\"\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": " Update Q-Table",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"parameter\": \"fontSize\", \"state\": {\"fontSize\": 16, \"theme\": 0, \"lineHeight\": 1.5}, \"action\": \"large\", \"reward\": 0.8, \"nextState\": {\"fontSize\": 18, \"theme\": 0, \"lineHeight\": 1.5}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:5000/api/users/u_001/qtables",
+						"description": "Generated from cURL: curl -X POST http://localhost:5000/api/users/u_001/qtables `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"parameter\\\": \\\"fontSize\\\", \\\"state\\\": {\\\"fontSize\\\": 16, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5}, \\\"action\\\": \\\"large\\\", \\\"reward\\\": 0.8, \\\"nextState\\\": {\\\"fontSize\\\": 18, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5}}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Feedback",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"optimization\": \r\n    {\r\n        \"parameter\": \"fontSize\", \r\n        \"oldValue\": \"16px\", \r\n        \"newValue\": \"18px\", \r\n        \"suggestedBy\": \"dqn_model\"\r\n    }, \r\n\"feedback\": \r\n    {\r\n        \"rating\": 5, \r\n        \"sentiment\": \"positive\", \r\n        \"comment\": \"Much better readability!\"\r\n    }, \r\n\"context\": \r\n    {\r\n        \"deviceType\": \"desktop\", \r\n        \"timeOfDay\": \"evening\", \r\n        \"targetSize\": 44\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:5000/api/users/u_001/feedback",
+						"description": "Generated from cURL: curl -X POST http://localhost:5000/api/users/u_001/feedback `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"optimization\\\": {\\\"parameter\\\": \\\"fontSize\\\", \\\"oldValue\\\": \\\"16px\\\", \\\"newValue\\\": \\\"18px\\\", \\\"suggestedBy\\\": \\\"dqn_model\\\"}, \\\"feedback\\\": {\\\"rating\\\": 5, \\\"sentiment\\\": \\\"positive\\\", \\\"comment\\\": \\\"Much better readability!\\\"}, \\\"context\\\": {\\\"deviceType\\\": \\\"desktop\\\", \\\"timeOfDay\\\": \\\"evening\\\", \\\"targetSize\\\": 44}}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Feedback for User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/users/u_001/feedback",
+						"description": "Generated from cURL: curl http://localhost:5000/api/users/u_001/feedback\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Feedback",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/feedback",
+						"description": "Generated from cURL: curl http://localhost:5000/api/feedback"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Settings History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/users/u_001/settings-history",
+						"description": "Generated from cURL: curl http://localhost:5000/api/users/u_001/settings-history\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Log Optimization Event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"eventType\": \"optimization_applied\", \"parameter\": \"fontSize\", \"oldValue\": \"16px\", \"newValue\": \"18px\", \"metadata\": {\"source\": \"dqn_model\", \"confidence\": 0.85}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:5000/api/users/u_001/events",
+						"description": "Generated from cURL: curl -X POST http://localhost:5000/api/users/u_001/events `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"eventType\\\": \\\"optimization_applied\\\", \\\"parameter\\\": \\\"fontSize\\\", \\\"oldValue\\\": \\\"16px\\\", \\\"newValue\\\": \\\"18px\\\", \\\"metadata\\\": {\\\"source\\\": \\\"dqn_model\\\", \\\"confidence\\\": 0.85}}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Optimization Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/users/u_001/events",
+						"description": "Generated from cURL: curl http://localhost:5000/api/users/u_001/events\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/users/u_001/stats",
+						"description": "Generated from cURL: curl http://localhost:5000/api/users/u_001/stats\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category-wise Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/stats/category-wise",
+						"description": "Generated from cURL: curl http://localhost:5000/api/stats/category-wise\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User-wise Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/stats/user-wise",
+						"description": "Generated from cURL: curl http://localhost:5000/api/stats/user-wise\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/api/health",
+						"description": "Generated from cURL: curl http://localhost:5000/api/health"
+					},
+					"response": []
+				},
+				{
+					"name": "Get API Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:5000/",
+						"description": "Generated from cURL: curl http://localhost:5000/"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "RL-python",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "http://localhost:8000/rl/health",
+						"description": "Generated from cURL: curl http://localhost:8000/rl/health"
+					},
+					"response": []
+				},
+				{
+					"name": "Initialize Agent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userId\": \"u_001\", \"parameter\": \"fontSize\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8000/rl/initialize",
+						"description": "Generated from cURL: curl -X POST http://localhost:8000/rl/initialize `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"userId\\\": \\\"u_001\\\", \\\"parameter\\\": \\\"fontSize\\\"}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Choose Action",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userId\": \"u_001\", \"parameter\": \"fontSize\", \"state\": {\"fontSize\": 16, \"theme\": 0, \"lineHeight\": 1.5, \"contrast\": 1.0, \"deviceType\": 0, \"timeOfDay\": 2, \"targetSize\": 44}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8000/rl/choose-action",
+						"description": "Generated from cURL: curl -X POST http://localhost:8000/rl/choose-action `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"userId\\\": \\\"u_001\\\", \\\"parameter\\\": \\\"fontSize\\\", \\\"state\\\": {\\\"fontSize\\\": 16, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5, \\\"contrast\\\": 1.0, \\\"deviceType\\\": 0, \\\"timeOfDay\\\": 2, \\\"targetSize\\\": 44}}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Feedback",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userId\": \"u_001\", \"parameter\": \"fontSize\", \"state\": {\"fontSize\": 16, \"theme\": 0, \"lineHeight\": 1.5, \"contrast\": 1.0, \"deviceType\": 0, \"timeOfDay\": 2, \"targetSize\": 44}, \"action\": \"large\", \"reward\": 0.8, \"nextState\": {\"fontSize\": 18, \"theme\": 0, \"lineHeight\": 1.5, \"contrast\": 1.0, \"deviceType\": 0, \"timeOfDay\": 2, \"targetSize\": 44}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8000/rl/feedback",
+						"description": "Generated from cURL: curl -X POST http://localhost:8000/rl/feedback `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"userId\\\": \\\"u_001\\\", \\\"parameter\\\": \\\"fontSize\\\", \\\"state\\\": {\\\"fontSize\\\": 16, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5, \\\"contrast\\\": 1.0, \\\"deviceType\\\": 0, \\\"timeOfDay\\\": 2, \\\"targetSize\\\": 44}, \\\"action\\\": \\\"large\\\", \\\"reward\\\": 0.8, \\\"nextState\\\": {\\\"fontSize\\\": 18, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5, \\\"contrast\\\": 1.0, \\\"deviceType\\\": 0, \\\"timeOfDay\\\": 2, \\\"targetSize\\\": 44}}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/rl/stats?userId=u_001&parameter=fontSize",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"rl",
+								"stats"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "u_001"
+								},
+								{
+									"key": "parameter",
+									"value": "fontSize"
+								}
+							]
+						},
+						"description": "Generated from cURL: curl \"http://localhost:8000/rl/stats?userId=u_001&parameter=fontSize\"\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Batch Train",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userId\": \"u_001\", \"parameter\": \"fontSize\", \"experiences\": [{\"state\": {\"fontSize\": 16, \"theme\": 0, \"lineHeight\": 1.5, \"contrast\": 1.0, \"deviceType\": 0, \"timeOfDay\": 2, \"targetSize\": 44}, \"action\": \"large\", \"reward\": 0.8, \"nextState\": {\"fontSize\": 18, \"theme\": 0, \"lineHeight\": 1.5, \"contrast\": 1.0, \"deviceType\": 0, \"timeOfDay\": 2, \"targetSize\": 44}}], \"epochs\": 10}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8000/rl/batch-train",
+						"description": "Generated from cURL: curl -X POST http://localhost:8000/rl/batch-train `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"userId\\\": \\\"u_001\\\", \\\"parameter\\\": \\\"fontSize\\\", \\\"experiences\\\": [{\\\"state\\\": {\\\"fontSize\\\": 16, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5, \\\"contrast\\\": 1.0, \\\"deviceType\\\": 0, \\\"timeOfDay\\\": 2, \\\"targetSize\\\": 44}, \\\"action\\\": \\\"large\\\", \\\"reward\\\": 0.8, \\\"nextState\\\": {\\\"fontSize\\\": 18, \\\"theme\\\": 0, \\\"lineHeight\\\": 1.5, \\\"contrast\\\": 1.0, \\\"deviceType\\\": 0, \\\"timeOfDay\\\": 2, \\\"targetSize\\\": 44}}], \\\"epochs\\\": 10}'\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Save Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userId\": \"u_001\", \"parameter\": \"fontSize\"}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8000/rl/save",
+						"description": "Generated from cURL: curl -X POST http://localhost:8000/rl/save `\r\n  -H \"Content-Type: application/json\" `\r\n  -d '{\\\"userId\\\": \\\"u_001\\\", \\\"parameter\\\": \\\"fontSize\\\"}'"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -686,6 +686,283 @@ app.get('/api/health', (req, res) => {
 });
 
 // =====================================================
+// ADDITIONAL ENDPOINTS
+// =====================================================
+
+/**
+ * POST /api/users
+ * Create new user
+ */
+app.post('/api/users', async (req, res) => {
+  try {
+    const { userId, name, email } = req.body;
+    
+    // Check if user exists
+    let user = await dbService.getUser(userId);
+    if (user) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists'
+      });
+    }
+    
+    // Create user via dbService (it auto-creates on first interaction)
+    user = await dbService.getUser(userId);
+    
+    res.json({
+      success: true,
+      data: {
+        userId: user.userId,
+        created: true
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/users
+ * Get all users
+ */
+app.get('/api/users', async (req, res) => {
+  try {
+    const User = mongoose.model('User');
+    const users = await User.find({}).select('userId currentSettings lastActive');
+    
+    res.json({
+      success: true,
+      data: users,
+      count: users.length
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/users/:userId/qtables
+ * Update Q-table (alias for existing endpoint)
+ */
+app.post('/api/users/:userId/qtables', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { parameter, state, action, reward, nextState } = req.body;
+    
+    const qtable = await dbService.updateQValue(
+      userId,
+      parameter,
+      state,
+      action,
+      reward,
+      nextState
+    );
+    
+    res.json({
+      success: true,
+      data: qtable
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/feedback
+ * Get all feedback across users
+ */
+app.get('/api/feedback', async (req, res) => {
+  try {
+    const Feedback = mongoose.model('Feedback');
+    const feedback = await Feedback.find({})
+      .sort({ timestamp: -1 })
+      .limit(100);
+    
+    res.json({
+      success: true,
+      data: feedback,
+      count: feedback.length
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/users/:userId/settings-history
+ * Get settings history
+ */
+app.get('/api/users/:userId/settings-history', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const SettingsHistory = mongoose.model('SettingsHistory');
+    
+    const history = await SettingsHistory.find({ userId })
+      .sort({ timestamp: -1 })
+      .limit(50);
+    
+    res.json({
+      success: true,
+      data: history,
+      count: history.length
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/users/:userId/events
+ * Log optimization event
+ */
+app.post('/api/users/:userId/events', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { eventType, parameter, oldValue, newValue, metadata } = req.body;
+    
+    const event = await dbService.logEvent(userId, eventType, {
+      parameter,
+      oldValue,
+      newValue,
+      ...metadata
+    });
+    
+    res.json({
+      success: true,
+      data: event
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/users/:userId/events
+ * Get optimization events
+ */
+app.get('/api/users/:userId/events', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const OptimizationEvent = mongoose.model('OptimizationEvent');
+    
+    const events = await OptimizationEvent.find({ userId })
+      .sort({ timestamp: -1 })
+      .limit(100);
+    
+    res.json({
+      success: true,
+      data: events,
+      count: events.length
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/users/:userId/stats
+ * Get user statistics
+ */
+app.get('/api/users/:userId/stats', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const Feedback = mongoose.model('Feedback');
+    const OptimizationEvent = mongoose.model('OptimizationEvent');
+    
+    const feedbackCount = await Feedback.countDocuments({ userId });
+    const eventsCount = await OptimizationEvent.countDocuments({ userId });
+    const avgRating = await Feedback.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, avg: { $avg: '$feedback.rating' } } }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        userId,
+        totalFeedback: feedbackCount,
+        totalEvents: eventsCount,
+        averageRating: avgRating[0]?.avg || 0
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/stats/category-wise
+ * Get category-wise statistics
+ */
+app.get('/api/stats/category-wise', async (req, res) => {
+  try {
+    const Feedback = mongoose.model('Feedback');
+    
+    const stats = await Feedback.aggregate([
+      {
+        $group: {
+          _id: '$optimization.parameter',
+          count: { $sum: 1 },
+          avgRating: { $avg: '$feedback.rating' }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/stats/user-wise
+ * Get user-wise statistics
+ */
+app.get('/api/stats/user-wise', async (req, res) => {
+  try {
+    const Feedback = mongoose.model('Feedback');
+    
+    const stats = await Feedback.aggregate([
+      {
+        $group: {
+          _id: '$userId',
+          count: { $sum: 1 },
+          avgRating: { $avg: '$feedback.rating' }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /
+ * API info
+ */
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Adaptive UI Optimization API',
+    version: '1.0.0',
+    endpoints: {
+      users: '/api/users',
+      feedback: '/api/feedback',
+      health: '/api/health',
+      stats: '/api/stats'
+    },
+    documentation: 'See README.md for full API documentation'
+  });
+});
+
+// =====================================================
 // ERROR HANDLING
 // =====================================================
 
