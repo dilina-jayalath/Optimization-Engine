@@ -24,13 +24,14 @@ class RewardCalculator {
     let reward = this.rewardValues[feedback.type] || 0;
     
     // Time-based decay (faster feedback = higher reward)
+    let timePenalty = 0;
     if (context.timeToFeedback) {
-      const timePenalty = Math.min(context.timeToFeedback / 30000, 1); // 30 seconds max
+      timePenalty = Math.min(context.timeToFeedback / 30000, 1); // 30 seconds max
       reward *= (1 - timePenalty * (1 - this.timeDecayFactor));
     }
     
     // Usage bonus (if user kept using the setting)
-    if (context.continued Using && feedback.type === 'positive') {
+    if (context.continuedUsing && feedback.type === 'positive') {
       reward += this.usageBonus;
     }
     
