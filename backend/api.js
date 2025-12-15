@@ -14,10 +14,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const axios = require('axios');
 const RLMongoDBService = require('./mongodb/service');
 
 const app = express();
 const dbService = new RLMongoDBService();
+
+// Python DQN Service URL
+const PYTHON_RL_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
 
 // Middleware
 app.use(cors());
@@ -367,19 +371,51 @@ app.post('/api/users/:userId/qtables/:parameter/update', async (req, res) => {
 
 /**
  * GET /api/users/:userId/qtables/:parameter/best-action
- * Get best action for current state
+ * Get best action for current state (DQN Integration)
  */
 app.get('/api/users/:userId/qtables/:parameter/best-action', async (req, res) => {
   try {
     const { userId, parameter } = req.params;
     const { state } = req.query;
     
-    const result = await dbService.getBestAction(userId, parameter, state || 'current');
-    
-    res.json({
-      success: true,
-      data: result
-    });
+    // Try to get recommendation from Python DQN first
+    try {
+      const user = await dbService.getUser(userId);
+      
+      const dqnResponse = await axios.post(`${PYTHON_RL_URL}/rl/choose-action`, {
+        userId,
+        parameter,
+        state: {
+          ...user.currentSettings,
+          deviceType: 'desktop',
+          timeOfDay: new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'
+        },
+        explore: true
+      }, { timeout: 3000 });
+      
+      return res.json({
+        success: true,
+        data: {
+          action: dqnResponse.data.action,
+          qValue: dqnResponse.data.qValue,
+          epsilon: dqnResponse.data.epsilon,
+          source: 'dqn'
+        }
+      });
+    } catch (dqnError) {
+      console.log('DQN service unavailable, falling back to Q-table');
+      
+      // Fallback to traditional Q-table
+      const result = await dbService.getBestAction(userId, parameter, state || 'current');
+      
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          source: 'qtable'
+        }
+      });
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -391,7 +427,7 @@ app.get('/api/users/:userId/qtables/:parameter/best-action', async (req, res) =>
 
 /**
  * POST /api/users/:userId/feedback
- * Submit user feedback
+ * Submit user feedback (DQN Integration)
  */
 app.post('/api/users/:userId/feedback', async (req, res) => {
   try {
@@ -426,6 +462,33 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
     );
     
     console.log('Saved feedback entry:', JSON.stringify(feedbackEntry, null, 2));
+    
+    // Send to Python DQN for training
+    try {
+      const user = await dbService.getUser(userId);
+      
+      const dqnResponse = await axios.post(`${PYTHON_RL_URL}/rl/feedback`, {
+        userId,
+        parameter: optimization.parameter,
+        state: {
+          ...user.currentSettings,
+          deviceType: context.deviceType,
+          timeOfDay: context.timeOfDay
+        },
+        action: optimization.newValue,
+        reward: rewardValue,
+        nextState: {
+          ...user.currentSettings,
+          [optimization.parameter]: optimization.newValue
+        },
+        done: false
+      }, { timeout: 5000 });
+      
+      console.log('DQN Training:', dqnResponse.data);
+    } catch (dqnError) {
+      console.error('DQN service error (non-blocking):', dqnError.message);
+      // Continue even if DQN fails
+    }
     
     // Log event (use 'applied' for positive, 'rejected' for negative/neutral)
     await dbService.logEvent(userId, 'optimization_' + (feedback.type === 'positive' ? 'applied' : 'rejected'), {
