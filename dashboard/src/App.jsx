@@ -7,19 +7,22 @@ import ControlPanel from './components/ControlPanel';
 import ComparisonView from './components/ComparisonView';
 import FeedbackHistory from './components/FeedbackHistory';
 import FeedbackForm from './components/FeedbackForm';
+import SettingsDisplay from './components/SettingsDisplay';
 import Toast from './components/Toast';
 import { useHistory } from './hooks/useHistory';
 import { fetchUserData } from './services/api';
+import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 
-function App() {
+function AppContent() {
   const [userId, setUserId] = useState('u_001'); // Default user
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [filterType, setFilterType] = useState('all'); // all, ml, manual, system
   const [activeTab, setActiveTab] = useState('changes'); // changes, feedback
-  const [theme, setTheme] = useState('light');
   const [feedbackRefresh, setFeedbackRefresh] = useState(0);
+  
+  const { settings, updateSetting } = useSettings();
   
   const {
     history,
@@ -33,11 +36,6 @@ function App() {
     addChange,
     stats
   } = useHistory(userId);
-
-  useEffect(() => {
-    // Set theme on document
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     loadUserData();
@@ -58,13 +56,25 @@ function App() {
   };
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    const newTheme = settings.theme === 'light' ? 'dark' : 'light';
+    updateSetting('theme', newTheme);
   };
 
   const handleFeedbackSubmitted = (feedback) => {
     showToast('Feedback submitted successfully! 🎉', 'success');
     setFeedbackRefresh(prev => prev + 1); // Trigger refresh
     setActiveTab('feedback'); // Switch to feedback tab to show the new feedback
+  };
+  
+  const handleSettingsUpdate = (updateInfo) => {
+    const { reason, confidence, ...settings } = updateInfo;
+    const updates = Object.entries(settings)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+    const confidenceText = confidence ? ` (${(confidence * 100).toFixed(0)}% confident)` : '';
+    const reasonText = reason ? ` - ${reason}` : '';
+    showToast(`🤖 RL Auto-Applied: ${updates}${confidenceText}${reasonText}`, 'success');
+    loadUserData(); // Reload to get updated settings
   };
 
   const showToast = (message, type = 'success') => {
@@ -144,9 +154,9 @@ function App() {
           <button 
             onClick={toggleTheme}
             className="btn btn-circle btn-primary shadow-lg"
-            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            title={`Switch to ${settings.theme === 'light' ? 'dark' : 'light'} mode`}
           >
-            {theme === 'light' ? '🌙' : '☀️'}
+            {settings.theme === 'light' ? '🌙' : '☀️'}
           </button>
         </div>
 
@@ -159,6 +169,8 @@ function App() {
         />
 
         <StatsCards stats={stats} />
+
+        <SettingsDisplay />
 
         <ControlPanel
           canUndo={canUndo}
@@ -191,6 +203,7 @@ function App() {
               <FeedbackForm 
                 userId={userId}
                 onFeedbackSubmitted={handleFeedbackSubmitted}
+                onSettingsUpdate={handleSettingsUpdate}
               />
             </div>
           </div>
@@ -243,6 +256,16 @@ function App() {
         />
       </div>
     </div>
+  );
+}
+
+function App() {
+  const [userId] = useState('u_001');
+  
+  return (
+    <SettingsProvider userId={userId}>
+      <AppContent />
+    </SettingsProvider>
   );
 }
 

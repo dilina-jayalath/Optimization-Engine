@@ -177,23 +177,27 @@ class RLMongoDBService {
     try {
       const qTable = await this.getQTable(userId, parameter);
       
+      // Convert state and action to strings for Mongoose Map compatibility
+      const stateKey = String(state);
+      const actionKey = String(action);
+      
       // Initialize state if not exists
-      if (!qTable.qValues.has(state)) {
-        qTable.qValues.set(state, new Map());
+      if (!qTable.qValues.has(stateKey)) {
+        qTable.qValues.set(stateKey, new Map());
       }
       
       // Update Q-value
-      qTable.qValues.get(state).set(action, value);
+      qTable.qValues.get(stateKey).set(actionKey, value);
       
       // Update visit count
-      if (!qTable.visitCounts.has(state)) {
-        qTable.visitCounts.set(state, new Map());
+      if (!qTable.visitCounts.has(stateKey)) {
+        qTable.visitCounts.set(stateKey, new Map());
       }
-      const currentCount = qTable.visitCounts.get(state).get(action) || 0;
-      qTable.visitCounts.get(state).set(action, currentCount + 1);
+      const currentCount = qTable.visitCounts.get(stateKey).get(actionKey) || 0;
+      qTable.visitCounts.get(stateKey).set(actionKey, currentCount + 1);
       
       // Update last action
-      qTable.lastActions.set(state, action);
+      qTable.lastActions.set(stateKey, actionKey);
       
       // Update statistics
       qTable.totalUpdates += 1;
@@ -214,11 +218,14 @@ class RLMongoDBService {
     try {
       const qTable = await this.getQTable(userId, parameter);
       
-      if (!qTable.qValues.has(state)) {
+      // Convert state to string for Mongoose Map compatibility
+      const stateKey = String(state);
+      
+      if (!qTable.qValues.has(stateKey)) {
         return null;
       }
       
-      const stateActions = qTable.qValues.get(state);
+      const stateActions = qTable.qValues.get(stateKey);
       let bestAction = null;
       let bestValue = -Infinity;
       

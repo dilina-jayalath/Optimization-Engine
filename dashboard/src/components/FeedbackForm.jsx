@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { submitFeedback } from '../services/api';
+import { submitFeedback, updateUserSettings } from '../services/api';
+import { useSettings } from '../contexts/SettingsContext';
 
-function FeedbackForm({ userId, onFeedbackSubmitted }) {
+function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
+  const { settings, updateSetting, reloadSettings } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     rating: 5,
     feedbackType: 'positive',
     comment: '',
-    componentId: 'dashboard_ui'
+    parameter: 'targetSize',
+    currentValue: null
   });
 
   const handleSubmit = async (e) => {
@@ -16,59 +19,101 @@ function FeedbackForm({ userId, onFeedbackSubmitted }) {
     setIsSubmitting(true);
     
     try {
-      // Submit to MongoDB via API - matching the schema structure
+      // Get current value based on parameter
+      const currentValue = formData.currentValue || getCurrentValue(formData.parameter);
+      
+      // NEW SIMPLIFIED FORMAT - Send current value + feedback, RL predicts next
       const feedbackData = {
-        optimization: {
-          parameter: formData.componentId,
-          oldValue: 'current_state',
-          newValue: 'improved_state',
-          suggestedBy: 'system'
-        },
+        parameter: formData.parameter,
+        currentValue: currentValue,
         feedback: {
           type: formData.feedbackType,
           rating: parseInt(formData.rating),
-          comment: formData.comment,
-          timestamp: new Date().toISOString()
-        },
-        reward: {
-          value: (parseInt(formData.rating) - 3) * 0.5,
-          normalized: (parseInt(formData.rating) - 3) / 2,
-          components: {
-            directFeedback: parseInt(formData.rating) / 5,
-            timeToFeedback: 0,
-            usagePattern: 0
-          }
+          comment: formData.comment.trim() || undefined,
+          accepted: formData.feedbackType === 'positive',
+          responseTime: 2000
         },
         context: {
-          sessionDuration: 0,
-          interactionCount: 1,
-          deviceType: navigator.userAgent,
-          timeOfDay: new Date().toLocaleTimeString(),
+          deviceType: getDeviceType(),
+          timeOfDay: getTimeOfDay(),
+          sessionDuration: 60000,
+          interactionCount: 5,
           pageUrl: window.location.href
         }
       };
 
+      console.log('📤 Submitting feedback:', feedbackData);
       const result = await submitFeedback(userId, feedbackData);
+      console.log('📥 Received result:', result);
+      
+      // Auto-apply RL suggestion if available
+      if (result.data?.nextSuggestion) {
+        const suggestion = result.data.nextSuggestion;
+        console.log('✨ Auto-applying RL suggestion:', suggestion.suggestedValue);
+        
+        // First update local settings for immediate feedback
+        updateSetting(formData.parameter, suggestion.suggestedValue);
+        
+        // Then reload from backend to ensure we have the latest RL suggestions
+        setTimeout(async () => {
+          await reloadSettings();
+          console.log('🔄 Reloaded settings from backend');
+        }, 500);
+        
+        // Show success message with what was changed
+        if (onSettingsUpdate) {
+          onSettingsUpdate({
+            [formData.parameter]: suggestion.suggestedValue,
+            reason: suggestion.reason,
+            confidence: suggestion.confidence
+          });
+        }
+      }
+      
+      closeAndReset();
       
       // Notify parent component
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted(result);
       }
-      
-      // Reset form and close modal
-      setFormData({
-        rating: 5,
-        feedbackType: 'positive',
-        comment: '',
-        componentId: 'dashboard_ui'
-      });
-      setIsOpen(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       alert('Failed to submit feedback. Please try again.');
-    } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  const getCurrentValue = (parameter) => {
+    // Return current value from global settings
+    return settings[parameter] || formData.currentValue;
+  };
+  
+  const getDeviceType = () => {
+    const width = window.innerWidth;
+    if (width < 768) return 'mobile';
+    if (width < 1024) return 'tablet';
+    return 'desktop';
+  };
+  
+  const getTimeOfDay = () => {
+    const hour = new Date().getHours();
+    if (hour < 6) return 'night';
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    if (hour < 22) return 'evening';
+    return 'night';
+  };
+  
+  const closeAndReset = () => {
+    setFormData({
+      rating: 5,
+      feedbackType: 'positive',
+      comment: '',
+      parameter: 'targetSize',
+      currentValue: null
+    });
+    setIsOpen(false);
+    setIsSubmitting(false);
   };
 
   const handleRatingChange = (rating) => {
@@ -154,23 +199,38 @@ function FeedbackForm({ userId, onFeedbackSubmitted }) {
                 </div>
               </div>
 
-              {/* Component */}
+              {/* Parameter */}
               <div>
                 <label className="label">
-                  <span className="label-text font-semibold">Which component?</span>
+                  <span className="label-text font-semibold">What would you like to give feedback on?</span>
                 </label>
                 <select
                   className="select select-bordered w-full"
-                  value={formData.componentId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, componentId: e.target.value }))}
+                  value={formData.parameter}
+                  onChange={(e) => setFormData(prev => ({ ...prev, parameter: e.target.value, currentValue: null }))}
                 >
-                  <option value="dashboard_ui">Dashboard UI</option>
-                  <option value="theme_switcher">Theme Switcher</option>
-                  <option value="history_timeline">History Timeline</option>
-                  <option value="stats_cards">Stats Cards</option>
-                  <option value="control_panel">Control Panel</option>
-                  <option value="feedback_section">Feedback Section</option>
+                  <option value="targetSize">🎯 Button Size</option>
+                  <option value="fontSize">🔤 Font Size</option>
+                  <option value="lineHeight">📏 Line Height</option>
+                  <option value="theme">🎨 Theme (Light/Dark)</option>
+                  <option value="contrastMode">🔆 Contrast Mode</option>
+                  <option value="elementSpacing">↔️ Element Spacing</option>
                 </select>
+              </div>
+              
+              {/* Current Value */}
+              <div>
+                <label className="label">
+                  <span className="label-text font-semibold">Current Value (Active on Entire Website)</span>
+                </label>
+                <div className="alert alert-info">
+                  <div className="flex-1">
+                    <span>Current {formData.parameter}: <strong className="text-lg">{formData.currentValue || getCurrentValue(formData.parameter)}</strong></span>
+                    <div className="text-xs mt-1 opacity-70">
+                      ✨ This value is applied to the entire dashboard
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Comment */}

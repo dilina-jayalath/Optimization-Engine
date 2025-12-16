@@ -427,30 +427,46 @@ app.get('/api/users/:userId/qtables/:parameter/best-action', async (req, res) =>
 
 /**
  * POST /api/users/:userId/feedback
- * Submit user feedback (DQN Integration)
+ * Submit user feedback (DQN Integration with Smart Next Suggestions)
+ * 
+ * SIMPLIFIED: Frontend sends current value + feedback, RL predicts next value
  */
 app.post('/api/users/:userId/feedback', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { optimization, feedback, context } = req.body;
     
-    console.log('Received feedback data:', JSON.stringify({ optimization, feedback, context }, null, 2));
+    // SIMPLIFIED PAYLOAD - can accept both old and new format
+    let parameter, currentValue, previousValue, feedback, context, state;
     
-    // Calculate reward based on feedback
-    const rewardValue = {
-      'positive': 1.0,
-      'neutral': 0.0,
-      'negative': -1.0
-    }[feedback.type];
+    if (req.body.optimization) {
+      // Old format (backward compatible)
+      parameter = req.body.optimization.parameter;
+      previousValue = req.body.optimization.oldValue;
+      currentValue = req.body.optimization.newValue;
+      feedback = req.body.feedback;
+      context = req.body.context;
+      state = req.body.state;
+    } else {
+      // NEW SIMPLIFIED FORMAT
+      parameter = req.body.parameter;
+      currentValue = req.body.currentValue;
+      previousValue = req.body.previousValue;
+      feedback = req.body.feedback;
+      context = req.body.context;
+      state = req.body.state;
+    }
     
-    const reward = {
-      value: rewardValue,
-      normalized: rewardValue,
-      components: {
-        directFeedback: rewardValue,
-        timeToFeedback: 0,
-        usagePattern: 0
-      }
+    console.log('📥 Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
+    
+    // Calculate enhanced reward based on feedback
+    const reward = calculateEnhancedReward(feedback, context);
+    
+    // Build optimization object for storage
+    const optimization = {
+      parameter,
+      oldValue: previousValue || currentValue,
+      newValue: currentValue,
+      suggestedBy: req.body.optimization?.suggestedBy || 'user_manual'
     };
     
     const feedbackEntry = await dbService.recordFeedback(
@@ -461,40 +477,78 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       context
     );
     
-    console.log('Saved feedback entry:', JSON.stringify(feedbackEntry, null, 2));
+    // Get user's current state
+    const user = await dbService.getUser(userId);
+    const currentState = state || {
+      ...user.currentSettings,
+      [parameter]: currentValue,
+      deviceType: context?.deviceType || 'desktop',
+      timeOfDay: context?.timeOfDay || 'daytime'
+    };
     
     // Send to Python DQN for training
+    let rlTrainingResult = null;
     try {
-      const user = await dbService.getUser(userId);
-      
       const dqnResponse = await axios.post(`${PYTHON_RL_URL}/rl/feedback`, {
         userId,
-        parameter: optimization.parameter,
-        state: {
-          ...user.currentSettings,
-          deviceType: context.deviceType,
-          timeOfDay: context.timeOfDay
-        },
-        action: optimization.newValue,
-        reward: rewardValue,
-        nextState: {
-          ...user.currentSettings,
-          [optimization.parameter]: optimization.newValue
-        },
-        done: false
+        parameter: parameter,
+        state: currentState,
+        action: currentValue,
+        reward: reward.normalized,
+        nextState: currentState, // State doesn't change on feedback
+        done: false,
+        metadata: {
+          feedbackType: feedback.type,
+          rating: feedback.rating,
+          accepted: feedback.accepted !== false,
+          responseTime: feedback.responseTime || 0
+        }
       }, { timeout: 5000 });
       
-      console.log('DQN Training:', dqnResponse.data);
+      rlTrainingResult = dqnResponse.data;
+      console.log('🧠 DQN Training:', { loss: rlTrainingResult.loss, qValue: rlTrainingResult.qValue });
     } catch (dqnError) {
       console.error('DQN service error (non-blocking):', dqnError.message);
-      // Continue even if DQN fails
     }
     
-    // Log event (use 'applied' for positive, 'rejected' for negative/neutral)
-    await dbService.logEvent(userId, 'optimization_' + (feedback.type === 'positive' ? 'applied' : 'rejected'), {
-      parameter: optimization.parameter,
-      value: optimization.newValue,
-      feedbackType: feedback.type
+    // 🎯 RL PREDICTS NEXT VALUE (KEY FEATURE)
+    const nextSuggestion = await getNextSuggestion(
+      userId,
+      parameter,
+      currentState,
+      feedback.type
+    );
+    
+    console.log('💡 RL Suggested:', nextSuggestion?.suggestedValue);
+    
+    // Auto-apply RL suggestion to user settings
+    let updatedSettings = null;
+    if (nextSuggestion && nextSuggestion.suggestedValue) {
+      // Update both current settings and RL suggested settings
+      updatedSettings = await dbService.updateUserSettings(
+        userId,
+        { [parameter]: nextSuggestion.suggestedValue },
+        'rl_optimization'
+      );
+      
+      // Store RL suggestion separately for tracking
+      await dbService.getUser(userId).then(user => {
+        user.rlSuggestedSettings = user.rlSuggestedSettings || {};
+        user.rlSuggestedSettings[parameter] = nextSuggestion.suggestedValue;
+        user.rlSuggestedSettings.lastUpdated = new Date();
+        return user.save();
+      });
+      
+      console.log(`✅ Auto-applied RL suggestion: ${parameter} = ${nextSuggestion.suggestedValue}`);
+    }
+    
+    // Log event
+    await dbService.logEvent(userId, 'rl_suggestion_applied', {
+      parameter: parameter,
+      oldValue: currentValue,
+      newValue: nextSuggestion?.suggestedValue,
+      feedbackType: feedback.type,
+      autoApplied: true
     });
     
     res.json({
@@ -502,13 +556,231 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       data: {
         feedbackId: feedbackEntry._id,
         reward: reward.value,
-        feedback: feedbackEntry
+        currentValue: currentValue,
+        updatedSettings: updatedSettings,
+        
+        // 🎯 RL-PREDICTED Next suggestion
+        nextSuggestion: nextSuggestion ? {
+          parameter: nextSuggestion.parameter,
+          currentValue: nextSuggestion.currentValue,
+          suggestedValue: nextSuggestion.suggestedValue,  // ← RL PREDICTED THIS
+          reason: nextSuggestion.reason,
+          confidence: nextSuggestion.confidence,
+          shouldApply: nextSuggestion.shouldApply,
+          qValue: nextSuggestion.qValue
+        } : null,
+        
+        // Training stats
+        trainingStats: rlTrainingResult ? {
+          loss: rlTrainingResult.loss,
+          epsilon: rlTrainingResult.epsilon,
+          steps: rlTrainingResult.steps,
+          currentQValue: rlTrainingResult.qValue
+        } : null
       }
     });
   } catch (error) {
+    console.error('Feedback processing error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ===== HELPER FUNCTIONS FOR SMART SUGGESTIONS =====
+
+/**
+ * Calculate enhanced reward with multiple components
+ */
+function calculateEnhancedReward(feedback, context) {
+  const baseReward = {
+    'positive': 1.0,
+    'neutral': 0.0,
+    'negative': -1.0
+  }[feedback.type] || 0.0;
+  
+  // Rating bonus (if provided)
+  const ratingBonus = feedback.rating 
+    ? (feedback.rating - 3) * 0.2  // -0.4 to +0.4
+    : 0;
+  
+  // Response time bonus (faster = stronger signal)
+  const responseTimeBonus = feedback.responseTime && feedback.responseTime < 5000 ? 0.1 : 0;
+  
+  // Acceptance bonus
+  const acceptanceBonus = feedback.accepted !== false ? 0.2 : -0.2;
+  
+  const totalReward = baseReward + ratingBonus + responseTimeBonus + acceptanceBonus;
+  const normalized = Math.max(-1, Math.min(1, totalReward));
+  
+  return {
+    value: totalReward,
+    normalized: normalized,
+    components: {
+      directFeedback: baseReward,
+      rating: ratingBonus,
+      responseTime: responseTimeBonus,
+      acceptance: acceptanceBonus
+    }
+  };
+}
+
+/**
+ * Get next suggestion based on user feedback
+ */
+async function getNextSuggestion(userId, parameter, currentState, feedbackType) {
+  try {
+    // Call RL model to choose next action
+    const rlResponse = await axios.post(`${PYTHON_RL_URL}/rl/choose-action`, {
+      userId,
+      parameter,
+      state: currentState,
+      context: {
+        lastFeedback: feedbackType,  // Tell RL about last feedback
+        avoidCurrent: feedbackType === 'negative'  // Avoid current if negative
+      }
+    }, { timeout: 5000 });
+    
+    const currentValue = currentState[parameter];
+    const suggestedValue = rlResponse.data.action;
+    const confidence = rlResponse.data.qValue || 0.5;
+    
+    // Determine if we should auto-apply
+    const shouldAutoApply = (
+      confidence > 0.7 &&           // High confidence
+      feedbackType === 'negative'   // User was unhappy
+    );
+    
+    return {
+      parameter,
+      currentValue,
+      suggestedValue,
+      reason: getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbackType),
+      confidence,
+      shouldApply: shouldAutoApply,
+      qValue: confidence,
+      exploration: rlResponse.data.reasoning?.exploration || false
+    };
+    
+  } catch (error) {
+    console.error('Error getting RL suggestion:', error.message);
+    
+    // FALLBACK: Use rule-based suggestion
+    return getRuleBasedSuggestion(parameter, currentState, feedbackType);
+  }
+}
+
+/**
+ * Generate human-readable reason for suggestion
+ */
+function getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbackType) {
+  const reasons = {
+    targetSize: {
+      increase: "Making buttons larger for easier interaction",
+      decrease: "Making buttons more compact",
+      same: "Button size seems optimal"
+    },
+    fontSize: {
+      increase: "Increasing text size for better readability",
+      decrease: "Making text more compact",
+      same: "Text size seems perfect"
+    },
+    lineHeight: {
+      increase: "Increasing line spacing for better readability",
+      decrease: "Making content more compact",
+      same: "Line spacing seems optimal"
+    },
+    theme: {
+      change: "Trying a different theme that might suit you better",
+      same: "Current theme seems to work well"
+    },
+    contrastMode: {
+      change: "Adjusting contrast for better visibility",
+      same: "Contrast level seems appropriate"
+    },
+    elementSpacing: {
+      change: "Adjusting element spacing for better layout",
+      same: "Spacing seems comfortable"
+    }
+  };
+  
+  const direction = getDirection(parameter, currentValue, suggestedValue);
+  return reasons[parameter]?.[direction] || `Suggesting ${suggestedValue} based on your feedback`;
+}
+
+/**
+ * Determine direction of change (increase/decrease/change/same)
+ */
+function getDirection(parameter, oldVal, newVal) {
+  if (oldVal === newVal) return 'same';
+  
+  const numericParams = ['targetSize', 'lineHeight'];
+  if (numericParams.includes(parameter)) {
+    const oldNum = typeof oldVal === 'number' ? oldVal : parseFloat(oldVal) || 0;
+    const newNum = typeof newVal === 'number' ? newVal : parseFloat(newVal) || 0;
+    return newNum > oldNum ? 'increase' : 'decrease';
+  }
+  
+  const ordinalParams = {
+    fontSize: ['small', 'medium', 'large', 'x-large'],
+    elementSpacing: ['compact', 'normal', 'wide']
+  };
+  
+  if (ordinalParams[parameter]) {
+    const scale = ordinalParams[parameter];
+    const oldIdx = scale.indexOf(oldVal);
+    const newIdx = scale.indexOf(newVal);
+    if (oldIdx !== -1 && newIdx !== -1) {
+      return newIdx > oldIdx ? 'increase' : 'decrease';
+    }
+  }
+  
+  return 'change';
+}
+
+/**
+ * Rule-based fallback suggestion when RL is unavailable
+ */
+function getRuleBasedSuggestion(parameter, currentState, feedbackType) {
+  const currentValue = currentState[parameter];
+  
+  // Define progression paths
+  const progressions = {
+    targetSize: [24, 28, 32, 36, 40, 44],
+    fontSize: ['small', 'medium', 'large', 'x-large'],
+    lineHeight: [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
+    theme: ['light', 'dark', 'auto'],
+    contrastMode: ['normal', 'high'],
+    elementSpacing: ['compact', 'normal', 'wide']
+  };
+  
+  const options = progressions[parameter] || [currentValue];
+  const currentIndex = options.indexOf(currentValue);
+  
+  let suggestedValue;
+  
+  if (feedbackType === 'negative') {
+    // User doesn't like current → try next option
+    if (currentIndex !== -1 && currentIndex < options.length - 1) {
+      suggestedValue = options[currentIndex + 1];  // Increase
+    } else if (currentIndex > 0) {
+      suggestedValue = options[currentIndex - 1];  // Decrease if at max
+    } else {
+      suggestedValue = options[Math.floor(options.length / 2)]; // Middle
+    }
+  } else {
+    // User likes current → keep same
+    suggestedValue = currentValue;
+  }
+  
+  return {
+    parameter,
+    currentValue,
+    suggestedValue,
+    reason: getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbackType),
+    confidence: 0.5,
+    shouldApply: false,
+    source: 'rule-based-fallback'
+  };
+}
 
 /**
  * GET /api/users/:userId/feedback

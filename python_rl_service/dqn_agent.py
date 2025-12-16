@@ -180,30 +180,50 @@ class DQNAgent:
             target_size
         ], dtype=np.float32)
     
-    def choose_action(self, state, explore=True):
+    def choose_action(self, state, explore=True, avoid_current=False, current_action_index=None):
         """
-        Choose action using epsilon-greedy policy
+        Choose action using epsilon-greedy policy with smart avoidance
         
         Args:
             state: State dictionary or encoded state vector
             explore: Whether to use epsilon-greedy exploration
+            avoid_current: If True, avoid suggesting the current action (useful for negative feedback)
+            current_action_index: Index of current action to avoid
         
         Returns:
             action_index: Index of chosen action
+            q_values: All Q-values for this state
+            is_exploration: Whether this was an exploration move
         """
         # Encode state if needed
         if isinstance(state, dict):
             state = self.encode_state(state)
         
-        # Exploration
-        if explore and np.random.random() < self.epsilon:
-            return np.random.randint(self.action_size)
-        
-        # Exploitation
+        # Get Q-values
         with torch.no_grad():
             state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-            q_values = self.q_network(state_tensor)
-            return q_values.argmax().item()
+            q_values = self.q_network(state_tensor).cpu().numpy()[0]
+        
+        # Exploration
+        if explore and np.random.random() < self.epsilon:
+            if avoid_current and current_action_index is not None:
+                # Explore but avoid current action
+                available_actions = [i for i in range(self.action_size) if i != current_action_index]
+                action = np.random.choice(available_actions) if available_actions else np.random.randint(self.action_size)
+            else:
+                action = np.random.randint(self.action_size)
+            return action, q_values, True  # True = exploration
+        
+        # Exploitation: best action based on Q-values
+        if avoid_current and current_action_index is not None:
+            # Set Q-value of current action to very low
+            q_values_copy = q_values.copy()
+            q_values_copy[current_action_index] = -999
+            action = np.argmax(q_values_copy)
+        else:
+            action = np.argmax(q_values)
+        
+        return action, q_values, False  # False = exploitation
     
     def store_experience(self, state, action, reward, next_state, done=False):
         """Store experience in replay buffer"""

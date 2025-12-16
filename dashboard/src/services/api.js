@@ -78,3 +78,8 @@ export async function clearHistory(userId) {
     throw error;
   }
 }
+
+// Alias for updating user settings (same as applySettings)
+export async function updateUserSettings(userId, settings) {
+  return applySettings(userId, settings, 'rl');
+}

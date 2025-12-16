@@ -31,6 +31,17 @@ const userSchema = new mongoose.Schema({
     targetSize: { type: Number, default: 32 }
   },
   
+  // RL Suggested settings (auto-applied from RL model)
+  rlSuggestedSettings: {
+    fontSize: { type: String },
+    lineHeight: { type: Number },
+    theme: { type: String },
+    contrastMode: { type: String },
+    elementSpacing: { type: String },
+    targetSize: { type: Number },
+    lastUpdated: { type: Date }
+  },
+  
   // ML profile (from your optimization engine)
   mlProfile: {
     categoryWise: { type: Object, default: {} },
@@ -194,7 +205,7 @@ const feedbackSchema = new mongoose.Schema({
     parameter: { type: String, required: true },
     oldValue: { type: mongoose.Schema.Types.Mixed },
     newValue: { type: mongoose.Schema.Types.Mixed, required: true },
-    suggestedBy: { type: String, enum: ['rl', 'ml', 'system'], required: true }
+    suggestedBy: { type: String, enum: ['rl', 'ml', 'system', 'user_manual'], required: true }
   },
   
   // User's feedback
@@ -253,6 +264,7 @@ const optimizationEventSchema = new mongoose.Schema({
       'optimization_triggered',
       'optimization_applied',
       'optimization_rejected',
+      'rl_suggestion_applied',
       'manual_override',
       'reset',
       'undo',
