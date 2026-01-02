@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../NPM-Package"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "NPM-Package"
+	}
+}

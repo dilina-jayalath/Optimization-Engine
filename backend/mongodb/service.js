@@ -171,15 +171,22 @@ class RLMongoDBService {
   }
 
   /**
+   * Sanitize key for Mongoose Map (replace dots with underscores)
+   */
+  sanitizeKey(value) {
+    return String(value).replace(/\./g, '_');
+  }
+
+  /**
    * Update Q-value
    */
   async updateQValue(userId, parameter, state, action, value) {
     try {
       const qTable = await this.getQTable(userId, parameter);
       
-      // Convert state and action to strings for Mongoose Map compatibility
-      const stateKey = String(state);
-      const actionKey = String(action);
+      // Convert state and action to strings and sanitize for Mongoose Map compatibility
+      const stateKey = this.sanitizeKey(state);
+      const actionKey = this.sanitizeKey(action);
       
       // Initialize state if not exists
       if (!qTable.qValues.has(stateKey)) {
@@ -218,8 +225,8 @@ class RLMongoDBService {
     try {
       const qTable = await this.getQTable(userId, parameter);
       
-      // Convert state to string for Mongoose Map compatibility
-      const stateKey = String(state);
+      // Convert state to string and sanitize for Mongoose Map compatibility
+      const stateKey = this.sanitizeKey(state);
       
       if (!qTable.qValues.has(stateKey)) {
         return null;

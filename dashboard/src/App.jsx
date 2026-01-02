@@ -7,6 +7,7 @@ import ControlPanel from './components/ControlPanel';
 import ComparisonView from './components/ComparisonView';
 import FeedbackHistory from './components/FeedbackHistory';
 import FeedbackForm from './components/FeedbackForm';
+import ManualSettingsControl from './components/ManualSettingsControl';
 import SettingsDisplay from './components/SettingsDisplay';
 import Toast from './components/Toast';
 import { useHistory } from './hooks/useHistory';
@@ -75,6 +76,12 @@ function AppContent() {
     const reasonText = reason ? ` - ${reason}` : '';
     showToast(`🤖 RL Auto-Applied: ${updates}${confidenceText}${reasonText}`, 'success');
     loadUserData(); // Reload to get updated settings
+  };
+  
+  const handleManualSettingChange = (changeInfo) => {
+    const { parameter, oldValue, newValue } = changeInfo;
+    showToast(`⚙️ Manual Change: ${parameter} changed from ${oldValue} to ${newValue} (RL model learning...)`, 'info');
+    loadUserData();
   };
 
   const showToast = (message, type = 'success') => {
@@ -199,7 +206,11 @@ function AppContent() {
                 💬 Feedback & Impact
               </button>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex gap-2">
+              <ManualSettingsControl
+                userId={userId}
+                onSettingChange={handleManualSettingChange}
+              />
               <FeedbackForm 
                 userId={userId}
                 onFeedbackSubmitted={handleFeedbackSubmitted}
