@@ -352,6 +352,43 @@ sessionSchema.index({ userId: 1, startTime: -1 });
 sessionSchema.index({ sessionId: 1 });
 
 // =====================================================
+// 7. MANUAL SETTINGS SCHEMA (Week 4+)
+// =====================================================
+const manualSettingsSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  
+  enabled: {
+    type: Boolean,
+    default: true // If true, manual settings override AI
+  },
+  
+  // UI Settings
+  fontSize: { type: String, default: '16px' },
+  lineHeight: { type: Number, default: 1.5 },
+  contrast: { type: String, default: 'normal' }, // normal, high
+  spacing: { type: String, default: 'normal' }, // compact, normal, wide
+  targetSize: { type: String, default: '44px' },
+  theme: { type: String, default: 'light' }, // light, dark
+  reducedMotion: { type: Boolean, default: false },
+  
+  // Colors
+  primaryColor: { type: String, default: '#007bff' },
+  secondaryColor: { type: String, default: '#6c757d' },
+  accentColor: { type: String, default: '#28a745' },
+  
+  // Metadata
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+manualSettingsSchema.index({ userId: 1 });
+
+// =====================================================
 // EXPORT MODELS
 // =====================================================
 const User = mongoose.model('User', userSchema);
@@ -360,6 +397,7 @@ const SettingsHistory = mongoose.model('SettingsHistory', settingsHistorySchema)
 const Feedback = mongoose.model('Feedback', feedbackSchema);
 const OptimizationEvent = mongoose.model('OptimizationEvent', optimizationEventSchema);
 const Session = mongoose.model('Session', sessionSchema);
+const ManualSettings = mongoose.model('ManualSettings', manualSettingsSchema);
 
 module.exports = {
   User,
@@ -367,5 +405,6 @@ module.exports = {
   SettingsHistory,
   Feedback,
   OptimizationEvent,
-  Session
+  Session,
+  ManualSettings
 };

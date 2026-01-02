@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Settings Dashboard - AURA</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      font-size: 32px;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #718096;
+      font-size: 16px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .mode-button {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .mode-button:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .mode-button.active {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+
+    .mode-button h3 {
+      font-size: 18px;
+      color: #2d3748;
+      margin-bottom: 6px;
+    }
+
+    .mode-button p {
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel h2 {
+      font-size: 24px;
+      color: #1a202c;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .setting-group {
+      margin-bottom: 24px;
+    }
+
+    .setting-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .setting-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+
+    .setting-description {
+      font-size: 13px;
+      color: #718096;
+      margin-bottom: 12px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      border: none;
+    }
+
+    .value-display {
+      display: inline-block;
+      background: #f7fafc;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #667eea;
+      margin-left: 12px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #2d3748;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 50px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 28px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e0;
+      transition: .3s;
+      border-radius: 28px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #667eea;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+
+    .btn-danger {
+      background: #fc8181;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #f56565;
+    }
+
+    .preview-panel {
+      grid-column: 1 / -1;
+    }
+
+    .preview-content {
+      padding: 24px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      margin-top: 16px;
+      transition: all 0.3s;
+    }
+
+    .preview-text {
+      margin-bottom: 16px;
+    }
+
+    .preview-button {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .status-bar {
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #48bb78;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .notification.success {
+      border-left: 4px solid #48bb78;
+    }
+
+    .notification.error {
+      border-left: 4px solid #fc8181;
+    }
+
+    .notification.show {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 UI Settings Dashboard</h1>
+      <p>Customize your interface or let AI personalize it for you</p>
+      
+      <div class="mode-toggle">
+        <div class="mode-button active" id="aiModeBtn">
+          <h3>🤖 AI Mode</h3>
+          <p>Let AI learn and optimize automatically</p>
+        </div>
+        <div class="mode-button" id="manualModeBtn">
+          <h3>✋ Manual Mode</h3>
+          <p>Control all settings yourself</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard" id="manualSettings" style="display: none;">
+      <div class="panel">
+        <h2>📝 Typography</h2>
+        
+        <div class="setting-group">
+          <label class="setting-label">Font Size</label>
+          <p class="setting-description">Base text size for all content</p>
+          <input type="range" id="fontSize" min="12" max="24" step="1" value="16">
+          <span class="value-display" id="fontSizeValue">16px</span>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Line Height</label>
+          <p class="setting-description">Spacing between lines of text</p>
+          <input type="range" id="lineHeight" min="1.2" max="2.0" step="0.1" value="1.5">
+          <span class="value-display" id="lineHeightValue">1.5</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🎨 Colors & Theme</h2>
+        
+        <div class="setting-group">
+          <label class="setting-label">Theme</label>
+          <select id="theme">
+            <option value="light">Light Theme</option>
+            <option value="dark">Dark Theme</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Contrast</label>
+          <select id="contrast">
+            <option value="normal">Normal Contrast</option>
+            <option value="high">High Contrast</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Primary Color</label>
+          <input type="color" id="primaryColor" value="#007bff">
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Secondary Color</label>
+          <input type="color" id="secondaryColor" value="#6c757d">
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Accent Color</label>
+          <input type="color" id="accentColor" value="#28a745">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>📏 Layout</h2>
+        
+        <div class="setting-group">
+          <label class="setting-label">Element Spacing</label>
+          <select id="spacing">
+            <option value="compact">Compact (6px)</option>
+            <option value="normal">Normal (8px)</option>
+            <option value="wide">Wide (12px)</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Button Size</label>
+          <p class="setting-description">Minimum touch target size</p>
+          <input type="range" id="targetSize" min="40" max="56" step="2" value="44">
+          <span class="value-display" id="targetSizeValue">44px</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>♿ Accessibility</h2>
+        
+        <div class="setting-group">
+          <label class="setting-label">Reduced Motion</label>
+          <p class="setting-description">Minimize animations and transitions</p>
+          <label class="toggle-switch">
+            <input type="checkbox" id="reducedMotion">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel preview-panel">
+        <h2>👁️ Live Preview</h2>
+        <div class="preview-content" id="previewContent">
+          <div class="preview-text">
+            <h3 style="margin-bottom: 12px;">Preview Heading</h3>
+            <p style="margin-bottom: 16px;">
+              This is how your text will look with the current settings. 
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            </p>
+          </div>
+          <button class="preview-button" id="previewButton">Sample Button</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span id="statusText">Connected to personalization engine</span>
+      </div>
+      <div id="lastSaved" style="font-size: 13px; color: #718096;"></div>
+    </div>
+  </div>
+
+  <div class="notification" id="notification">
+    <span id="notificationText"></span>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    const USER_ID = 'guest'; // In production, get from auth
+
+    let currentMode = 'ai';
+    let settings = {};
+
+    // Initialize
+    loadSettings();
+
+    // Mode toggle
+    document.getElementById('aiModeBtn').addEventListener('click', () => switchMode('ai'));
+    document.getElementById('manualModeBtn').addEventListener('click', () => switchMode('manual'));
+
+    // Setting inputs
+    document.getElementById('fontSize').addEventListener('input', updatePreview);
+    document.getElementById('lineHeight').addEventListener('input', updatePreview);
+    document.getElementById('theme').addEventListener('change', updatePreview);
+    document.getElementById('contrast').addEventListener('change', updatePreview);
+    document.getElementById('primaryColor').addEventListener('input', updatePreview);
+    document.getElementById('secondaryColor').addEventListener('input', updatePreview);
+    document.getElementById('accentColor').addEventListener('input', updatePreview);
+    document.getElementById('spacing').addEventListener('change', updatePreview);
+    document.getElementById('targetSize').addEventListener('input', updatePreview);
+    document.getElementById('reducedMotion').addEventListener('change', updatePreview);
+
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      document.getElementById('aiModeBtn').classList.toggle('active', mode === 'ai');
+      document.getElementById('manualModeBtn').classList.toggle('active', mode === 'manual');
+      document.getElementById('manualSettings').style.display = mode === 'manual' ? 'grid' : 'none';
+
+      if (mode === 'ai') {
+        disableManualSettings();
+      } else {
+        enableManualSettings();
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const response = await fetch(`${API_URL}/manual-settings/${USER_ID}`);
+        const data = await response.json();
+
+        if (data.success && data.hasManualSettings) {
+          switchMode('manual');
+          applySettings(data.settings);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    }
+
+    function applySettings(settingsData) {
+      document.getElementById('fontSize').value = parseInt(settingsData.fontSize);
+      document.getElementById('lineHeight').value = settingsData.lineHeight;
+      document.getElementById('theme').value = settingsData.theme;
+      document.getElementById('contrast').value = settingsData.contrast;
+      document.getElementById('primaryColor').value = settingsData.primaryColor;
+      document.getElementById('secondaryColor').value = settingsData.secondaryColor;
+      document.getElementById('accentColor').value = settingsData.accentColor;
+      document.getElementById('spacing').value = settingsData.spacing;
+      document.getElementById('targetSize').value = parseInt(settingsData.targetSize);
+      document.getElementById('reducedMotion').checked = settingsData.reducedMotion;
+
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const fontSize = document.getElementById('fontSize').value + 'px';
+      const lineHeight = document.getElementById('lineHeight').value;
+      const theme = document.getElementById('theme').value;
+      const contrast = document.getElementById('contrast').value;
+      const primaryColor = document.getElementById('primaryColor').value;
+      const targetSize = document.getElementById('targetSize').value + 'px';
+
+      // Update value displays
+      document.getElementById('fontSizeValue').textContent = fontSize;
+      document.getElementById('lineHeightValue').textContent = lineHeight;
+      document.getElementById('targetSizeValue').textContent = targetSize;
+
+      // Update preview
+      const preview = document.getElementById('previewContent');
+      const button = document.getElementById('previewButton');
+
+      preview.style.fontSize = fontSize;
+      preview.style.lineHeight = lineHeight;
+      preview.style.background = theme === 'dark' ? '#1a202c' : 'white';
+      preview.style.color = theme === 'dark' ? 'white' : '#1a202c';
+      
+      button.style.background = primaryColor;
+      button.style.color = 'white';
+      button.style.minHeight = targetSize;
+      button.style.minWidth = targetSize;
+
+      // Auto-save after 500ms delay
+      clearTimeout(window.saveTimeout);
+      window.saveTimeout = setTimeout(saveSettings, 500);
+    }
+
+    async function saveSettings() {
+      if (currentMode !== 'manual') return;
+
+      const settings = {
+        enabled: true,
+        fontSize: document.getElementById('fontSize').value + 'px',
+        lineHeight: parseFloat(document.getElementById('lineHeight').value),
+        theme: document.getElementById('theme').value,
+        contrast: document.getElementById('contrast').value,
+        primaryColor: document.getElementById('primaryColor').value,
+        secondaryColor: document.getElementById('secondaryColor').value,
+        accentColor: document.getElementById('accentColor').value,
+        spacing: document.getElementById('spacing').value,
+        targetSize: document.getElementById('targetSize').value + 'px',
+        reducedMotion: document.getElementById('reducedMotion').checked,
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/manual-settings/${USER_ID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          showNotification('Settings saved successfully!', 'success');
+          document.getElementById('lastSaved').textContent = 
+            `Last saved: ${new Date().toLocaleTimeString()}`;
+        }
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+        showNotification('Failed to save settings', 'error');
+      }
+    }
+
+    async function disableManualSettings() {
+      try {
+        await fetch(`${API_URL}/manual-settings/${USER_ID}`, {
+          method: 'DELETE',
+        });
+        showNotification('Switched to AI mode', 'success');
+        document.getElementById('statusText').textContent = 'AI is learning your preferences...';
+      } catch (error) {
+        console.error('Failed to switch mode:', error);
+      }
+    }
+
+    function enableManualSettings() {
+      showNotification('Manual mode enabled', 'success');
+      document.getElementById('statusText').textContent = 'Manual settings active';
+      saveSettings();
+    }
+
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      const text = document.getElementById('notificationText');
+      
+      text.textContent = message;
+      notification.className = `notification ${type} show`;
+
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

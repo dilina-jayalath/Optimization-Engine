@@ -1,0 +1,1076 @@
+{
+  "arms": [
+    {
+      "name": "baseline",
+      "fontSize": "16px",
+      "lineHeight": 1.5,
+      "contrast": "normal",
+      "spacing": "normal",
+      "targetSize": "44px"
+    },
+    {
+      "name": "large_text",
+      "fontSize": "18px",
+      "lineHeight": 1.6,
+      "contrast": "normal",
+      "spacing": "normal",
+      "targetSize": "48px"
+    },
+    {
+      "name": "high_contrast",
+      "fontSize": "16px",
+      "lineHeight": 1.5,
+      "contrast": "high",
+      "spacing": "normal",
+      "targetSize": "44px"
+    },
+    {
+      "name": "large_high_contrast",
+      "fontSize": "18px",
+      "lineHeight": 1.6,
+      "contrast": "high",
+      "spacing": "wide",
+      "targetSize": "48px"
+    },
+    {
+      "name": "extra_large",
+      "fontSize": "20px",
+      "lineHeight": 1.8,
+      "contrast": "high",
+      "spacing": "wide",
+      "targetSize": "52px"
+    },
+    {
+      "name": "compact",
+      "fontSize": "14px",
+      "lineHeight": 1.4,
+      "contrast": "normal",
+      "spacing": "compact",
+      "targetSize": "40px"
+    }
+  ],
+  "context_features": [
+    "visual_impairment",
+    "motor_skills",
+    "cognitive_load"
+  ],
+  "alpha": {
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_0": 1.0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_1": 1.0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_2": 1.0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_3": 5.9242875,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_4": 3.9440875,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_5": 1.9810500000000002,
+    "default_0": 1.0,
+    "default_1": 1.0,
+    "default_2": 1.0,
+    "default_3": 1.0,
+    "default_4": 1.0,
+    "default_5": 1.0,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_0": 5.689078293993605,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_1": 30.926173399209052,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_2": 15.453478234593923,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_3": 5.205310046625266,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_4": 9.052848035081798,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_5": 1.4500000000000002
+  },
+  "beta": {
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_0": 1.0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_1": 1.0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_2": 1.0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_3": 1.0757124999999996,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_4": 1.0559124999999998,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_5": 2.01895,
+    "default_0": 1.0,
+    "default_1": 1.0,
+    "default_2": 1.0,
+    "default_3": 1.0,
+    "default_4": 1.0,
+    "default_5": 1.0,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_0": 5.310921706006393,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_1": 20.07382660079094,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_2": 12.546521765406075,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_3": 4.794689953374734,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_4": 8.947151964918202,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_5": 2.55
+  },
+  "arm_pulls": {
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_3": 5,
+    "default_0": 0,
+    "default_1": 0,
+    "default_2": 0,
+    "default_3": 0,
+    "default_4": 0,
+    "default_5": 0,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_4": 3,
+    "visual_impairment:high,motor_skills:medium,cognitive_load:low_5": 2,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_1": 49,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_2": 26,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_4": 16,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_0": 9,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_3": 8,
+    "visual_impairment:medium,motor_skills:medium,cognitive_load:medium_5": 2
+  },
+  "history": [
+    {
+      "timestamp": 1767374965.0429528,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 3,
+      "reward": 0.9850000000000001,
+      "alpha": 1.985,
+      "beta": 1.015
+    },
+    {
+      "timestamp": 1767374971.151668,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 4,
+      "reward": 0.9790000000000001,
+      "alpha": 1.979,
+      "beta": 1.021
+    },
+    {
+      "timestamp": 1767374975.3965163,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 4,
+      "reward": 0.9800125,
+      "alpha": 2.9590125,
+      "beta": 1.0409875
+    },
+    {
+      "timestamp": 1767374979.6957228,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 5,
+      "reward": 0.48985,
+      "alpha": 1.4898500000000001,
+      "beta": 1.5101499999999999
+    },
+    {
+      "timestamp": 1767374983.9731176,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 3,
+      "reward": 0.9820375000000001,
+      "alpha": 2.9670375,
+      "beta": 1.0329624999999998
+    },
+    {
+      "timestamp": 1767374988.234429,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 5,
+      "reward": 0.4912,
+      "alpha": 1.9810500000000002,
+      "beta": 2.01895
+    },
+    {
+      "timestamp": 1767374992.4744842,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 3,
+      "reward": 0.9840625000000001,
+      "alpha": 3.9511000000000003,
+      "beta": 1.0488999999999997
+    },
+    {
+      "timestamp": 1767374996.7395196,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 4,
+      "reward": 0.9850750000000001,
+      "alpha": 3.9440875,
+      "beta": 1.0559124999999998
+    },
+    {
+      "timestamp": 1767375000.9973917,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 3,
+      "reward": 0.9860875,
+      "alpha": 4.9371875,
+      "beta": 1.0628124999999997
+    },
+    {
+      "timestamp": 1767375005.2730217,
+      "context": "visual_impairment:high,motor_skills:medium,cognitive_load:low",
+      "arm": 3,
+      "reward": 0.9871000000000001,
+      "alpha": 5.9242875,
+      "beta": 1.0757124999999996
+    },
+    {
+      "timestamp": 1767383945.639508,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.726,
+      "alpha": 1.726,
+      "beta": 1.274
+    },
+    {
+      "timestamp": 1767383954.578919,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7521249999999999,
+      "alpha": 2.478125,
+      "beta": 1.521875
+    },
+    {
+      "timestamp": 1767383991.316848,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.2359431331201959,
+      "alpha": 1.235943133120196,
+      "beta": 1.764056866879804
+    },
+    {
+      "timestamp": 1767383992.3615737,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.22499999999999998,
+      "alpha": 1.225,
+      "beta": 1.775
+    },
+    {
+      "timestamp": 1767384013.7980618,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.74,
+      "alpha": 1.74,
+      "beta": 1.26
+    },
+    {
+      "timestamp": 1767384036.6170058,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.2770536462699078,
+      "alpha": 2.7551786462699077,
+      "beta": 2.2448213537300923
+    },
+    {
+      "timestamp": 1767384040.398405,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5249999999999999,
+      "alpha": 2.2649999999999997,
+      "beta": 1.735
+    },
+    {
+      "timestamp": 1767384043.5945055,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5249999999999999,
+      "alpha": 2.7899999999999996,
+      "beta": 2.21
+    },
+    {
+      "timestamp": 1767384045.0751052,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5249999999999999,
+      "alpha": 3.3149999999999995,
+      "beta": 2.685
+    },
+    {
+      "timestamp": 1767384051.1807482,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5678992842865433,
+      "alpha": 3.323077930556451,
+      "beta": 2.676922069443549
+    },
+    {
+      "timestamp": 1767384053.9783452,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5678992842865433,
+      "alpha": 3.8909772148429944,
+      "beta": 3.1090227851570056
+    },
+    {
+      "timestamp": 1767384072.198812,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5396571661791715,
+      "alpha": 1.7756002992993674,
+      "beta": 2.2243997007006326
+    },
+    {
+      "timestamp": 1767384075.7961845,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6096571661791714,
+      "alpha": 2.3852574654785386,
+      "beta": 2.6147425345214614
+    },
+    {
+      "timestamp": 1767384078.596872,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6236571661791714,
+      "alpha": 3.00891463165771,
+      "beta": 2.99108536834229
+    },
+    {
+      "timestamp": 1767384080.7361157,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6376571661791715,
+      "alpha": 3.6465717978368817,
+      "beta": 3.3534282021631183
+    },
+    {
+      "timestamp": 1767384082.40107,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6516571661791715,
+      "alpha": 4.298228964016053,
+      "beta": 3.701771035983947
+    },
+    {
+      "timestamp": 1767384085.9973707,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6656571661791715,
+      "alpha": 4.963886130195224,
+      "beta": 4.036113869804775
+    },
+    {
+      "timestamp": 1767384088.05531,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.22499999999999998,
+      "alpha": 1.225,
+      "beta": 1.775
+    },
+    {
+      "timestamp": 1767384089.2544107,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.22499999999999998,
+      "alpha": 1.4500000000000002,
+      "beta": 2.55
+    },
+    {
+      "timestamp": 1767384091.1682644,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 5,
+      "reward": 0.22499999999999998,
+      "alpha": 1.225,
+      "beta": 1.775
+    },
+    {
+      "timestamp": 1767384746.5877206,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5369124549350384,
+      "alpha": 3.8519124549350376,
+      "beta": 3.1480875450649615
+    },
+    {
+      "timestamp": 1767384768.7991405,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5334386485266619,
+      "alpha": 4.424415863369656,
+      "beta": 3.5755841366303436
+    },
+    {
+      "timestamp": 1767384803.6263056,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.31249999999999994,
+      "alpha": 4.736915863369656,
+      "beta": 4.263084136630344
+    },
+    {
+      "timestamp": 1767384818.7871525,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.6828974999999999,
+      "alpha": 5.419813363369657,
+      "beta": 4.580186636630343
+    },
+    {
+      "timestamp": 1767384821.0295258,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.6847133333333333,
+      "alpha": 6.10452669670299,
+      "beta": 4.89547330329701
+    },
+    {
+      "timestamp": 1767384829.6283226,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.6919175,
+      "alpha": 6.79644419670299,
+      "beta": 5.20355580329701
+    },
+    {
+      "timestamp": 1767384837.4456427,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.6984425000000001,
+      "alpha": 7.49488669670299,
+      "beta": 5.50511330329701
+    },
+    {
+      "timestamp": 1767384852.3929,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7108816666666666,
+      "alpha": 8.205768363369657,
+      "beta": 5.794231636630344
+    },
+    {
+      "timestamp": 1767384854.358543,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7124941666666667,
+      "alpha": 8.918262530036323,
+      "beta": 6.081737469963677
+    },
+    {
+      "timestamp": 1767384858.3059502,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7158175,
+      "alpha": 9.634080030036323,
+      "beta": 6.365919969963677
+    },
+    {
+      "timestamp": 1767384860.8082263,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.71736,
+      "alpha": 10.351440030036322,
+      "beta": 6.648559969963677
+    },
+    {
+      "timestamp": 1767384861.457874,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7184375000000001,
+      "alpha": 11.069877530036322,
+      "beta": 6.930122469963677
+    },
+    {
+      "timestamp": 1767384862.4491594,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7192708333333333,
+      "alpha": 11.789148363369655,
+      "beta": 7.210851636630343
+    },
+    {
+      "timestamp": 1767384863.26576,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7199599999999999,
+      "alpha": 12.509108363369656,
+      "beta": 7.490891636630343
+    },
+    {
+      "timestamp": 1767384864.2542305,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7207649999999999,
+      "alpha": 13.229873363369656,
+      "beta": 7.7701266366303425
+    },
+    {
+      "timestamp": 1767384866.5844345,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7227108333333334,
+      "alpha": 13.95258419670299,
+      "beta": 8.047415803297008
+    },
+    {
+      "timestamp": 1767384868.964483,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7246874999999999,
+      "alpha": 14.67727169670299,
+      "beta": 8.322728303297009
+    },
+    {
+      "timestamp": 1767384870.681896,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.7261424999999999,
+      "alpha": 15.40341419670299,
+      "beta": 8.596585803297009
+    },
+    {
+      "timestamp": 1767384894.2692635,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.8400000000000001,
+      "alpha": 16.24341419670299,
+      "beta": 8.756585803297009
+    },
+    {
+      "timestamp": 1767384896.1857777,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.22499999999999998,
+      "alpha": 5.188886130195224,
+      "beta": 4.8111138698047755
+    },
+    {
+      "timestamp": 1767384898.5758934,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.22499999999999998,
+      "alpha": 5.413886130195223,
+      "beta": 5.586113869804776
+    },
+    {
+      "timestamp": 1767384899.11652,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.2381004577986975,
+      "alpha": 5.651986587993921,
+      "beta": 6.348013412006078
+    },
+    {
+      "timestamp": 1767384900.7109885,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 5,
+      "reward": 0.22499999999999998,
+      "alpha": 1.4500000000000002,
+      "beta": 2.55
+    },
+    {
+      "timestamp": 1767384900.9027865,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.22499999999999998,
+      "alpha": 4.076912454935037,
+      "beta": 3.9230875450649614
+    },
+    {
+      "timestamp": 1767384922.1436317,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5364985663686962,
+      "alpha": 1.9864985663686965,
+      "beta": 3.0135014336313035
+    },
+    {
+      "timestamp": 1767384925.923856,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5364985663686962,
+      "alpha": 2.522997132737393,
+      "beta": 3.477002867262607
+    },
+    {
+      "timestamp": 1767384929.4137654,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5364985663686962,
+      "alpha": 3.059495699106089,
+      "beta": 3.940504300893911
+    },
+    {
+      "timestamp": 1767384931.6239228,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.6204985663686962,
+      "alpha": 3.679994265474785,
+      "beta": 4.320005734525215
+    },
+    {
+      "timestamp": 1767384936.7277775,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5373103870485001,
+      "alpha": 4.614222841983537,
+      "beta": 4.385777158016461
+    },
+    {
+      "timestamp": 1767384974.9713693,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5381923399316526,
+      "alpha": 16.78160653663464,
+      "beta": 9.218393463365356
+    },
+    {
+      "timestamp": 1767385686.8698876,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5373103870485001,
+      "alpha": 6.189296975042421,
+      "beta": 6.8107030249575775
+    },
+    {
+      "timestamp": 1767385690.9728856,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5373103870485001,
+      "alpha": 6.72660736209092,
+      "beta": 7.273392637909078
+    },
+    {
+      "timestamp": 1767385693.1718693,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5373103870485001,
+      "alpha": 7.26391774913942,
+      "beta": 7.736082250860578
+    },
+    {
+      "timestamp": 1767385695.8222332,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6353103870485001,
+      "alpha": 7.89922813618792,
+      "beta": 8.100771863812078
+    },
+    {
+      "timestamp": 1767385698.2744381,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6773103870485,
+      "alpha": 8.57653852323642,
+      "beta": 8.423461476763578
+    },
+    {
+      "timestamp": 1767385700.4703412,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6773103870485,
+      "alpha": 9.25384891028492,
+      "beta": 8.746151089715077
+    },
+    {
+      "timestamp": 1767385703.3707519,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6773103870485,
+      "alpha": 9.931159297333421,
+      "beta": 9.068840702666577
+    },
+    {
+      "timestamp": 1767385705.7621741,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6773103870485,
+      "alpha": 10.608469684381921,
+      "beta": 9.391530315618077
+    },
+    {
+      "timestamp": 1767385720.82776,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6875,
+      "alpha": 11.295969684381921,
+      "beta": 9.704030315618077
+    },
+    {
+      "timestamp": 1767385726.47062,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.7233641666666666,
+      "alpha": 12.019333851048588,
+      "beta": 9.98066614895141
+    },
+    {
+      "timestamp": 1767385807.691016,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.537070410729254,
+      "alpha": 17.318676947363894,
+      "beta": 9.681323052636102
+    },
+    {
+      "timestamp": 1767385811.9040353,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.537070410729254,
+      "alpha": 17.855747358093147,
+      "beta": 10.14425264190685
+    },
+    {
+      "timestamp": 1767385813.0596602,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.537070410729254,
+      "alpha": 18.3928177688224,
+      "beta": 10.607182231177596
+    },
+    {
+      "timestamp": 1767385829.4471369,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.74,
+      "alpha": 19.1328177688224,
+      "beta": 10.867182231177596
+    },
+    {
+      "timestamp": 1767385831.3119447,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.74,
+      "alpha": 19.872817768822397,
+      "beta": 11.127182231177596
+    },
+    {
+      "timestamp": 1767386019.3962765,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.6875,
+      "alpha": 20.560317768822397,
+      "beta": 11.439682231177596
+    },
+    {
+      "timestamp": 1767386097.5937078,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5389612483074344,
+      "alpha": 21.09927901712983,
+      "beta": 11.900720982870162
+    },
+    {
+      "timestamp": 1767386114.104944,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5389612483074344,
+      "alpha": 21.638240265437265,
+      "beta": 12.361759734562728
+    },
+    {
+      "timestamp": 1767386146.778649,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.582707914974101,
+      "alpha": 22.220948180411366,
+      "beta": 12.779051819588627
+    },
+    {
+      "timestamp": 1767386155.2948935,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5896970816407677,
+      "alpha": 22.810645262052134,
+      "beta": 13.189354737947859
+    },
+    {
+      "timestamp": 1767386159.7127423,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5934570816407677,
+      "alpha": 23.4041023436929,
+      "beta": 13.595897656307091
+    },
+    {
+      "timestamp": 1767386172.0623505,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.533446288887562,
+      "alpha": 1.758446288887562,
+      "beta": 2.241553711112438
+    },
+    {
+      "timestamp": 1767386183.5952413,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.5370155848808742,
+      "alpha": 2.2954618737684362,
+      "beta": 2.7045381262315638
+    },
+    {
+      "timestamp": 1767386195.674617,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.5370155848808742,
+      "alpha": 2.8324774586493104,
+      "beta": 3.1675225413506896
+    },
+    {
+      "timestamp": 1767386235.4975238,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.5728539182142075,
+      "alpha": 3.405331376863518,
+      "beta": 3.594668623136482
+    },
+    {
+      "timestamp": 1767386237.5428774,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.6875,
+      "alpha": 4.0928313768635185,
+      "beta": 3.907168623136482
+    },
+    {
+      "timestamp": 1767386238.635389,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.5754630848808742,
+      "alpha": 4.668294461744392,
+      "beta": 4.331705538255608
+    },
+    {
+      "timestamp": 1767386257.2061021,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 3,
+      "reward": 0.5370155848808742,
+      "alpha": 5.205310046625266,
+      "beta": 4.794689953374734
+    },
+    {
+      "timestamp": 1767386264.758495,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5374277260050336,
+      "alpha": 12.55676157705362,
+      "beta": 10.443238422946377
+    },
+    {
+      "timestamp": 1767386272.9348626,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5374277260050336,
+      "alpha": 13.094189303058654,
+      "beta": 10.905810696941344
+    },
+    {
+      "timestamp": 1767386275.4489655,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.5374277260050336,
+      "alpha": 13.631617029063687,
+      "beta": 11.368382970936311
+    },
+    {
+      "timestamp": 1767386278.8636773,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5374277260050336,
+      "alpha": 5.151650567988571,
+      "beta": 4.848349432011427
+    },
+    {
+      "timestamp": 1767386286.1285703,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 0,
+      "reward": 0.5374277260050336,
+      "alpha": 5.689078293993605,
+      "beta": 5.310921706006393
+    },
+    {
+      "timestamp": 1767386305.4257767,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5376748984460635,
+      "alpha": 23.941777242138965,
+      "beta": 14.058222757861028
+    },
+    {
+      "timestamp": 1767386308.5869598,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5392272229028305,
+      "alpha": 24.481004465041796,
+      "beta": 14.518995534958197
+    },
+    {
+      "timestamp": 1767386326.1609693,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5392272229028305,
+      "alpha": 25.020231687944626,
+      "beta": 14.979768312055366
+    },
+    {
+      "timestamp": 1767386329.9043956,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5392272229028305,
+      "alpha": 25.559458910847457,
+      "beta": 15.440541089152536
+    },
+    {
+      "timestamp": 1767386333.2082536,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5392272229028305,
+      "alpha": 26.098686133750288,
+      "beta": 15.901313866249705
+    },
+    {
+      "timestamp": 1767386349.4976354,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5392272229028305,
+      "alpha": 26.63791335665312,
+      "beta": 16.362086643346874
+    },
+    {
+      "timestamp": 1767386351.7822359,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5392272229028305,
+      "alpha": 27.17714057955595,
+      "beta": 16.822859420444043
+    },
+    {
+      "timestamp": 1767386356.360937,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.539014352765118,
+      "alpha": 14.170631381828805,
+      "beta": 11.829368618171193
+    },
+    {
+      "timestamp": 1767386421.4654648,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.6875,
+      "alpha": 14.858131381828805,
+      "beta": 12.141868618171193
+    },
+    {
+      "timestamp": 1767386422.6317482,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 2,
+      "reward": 0.595346852765118,
+      "alpha": 15.453478234593923,
+      "beta": 12.546521765406075
+    },
+    {
+      "timestamp": 1767386438.7270885,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5347023106763367,
+      "alpha": 4.2146965761511215,
+      "beta": 4.7853034238488785
+    },
+    {
+      "timestamp": 1767386442.3003953,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5397031539888683,
+      "alpha": 4.75439973013999,
+      "beta": 5.24560026986001
+    },
+    {
+      "timestamp": 1767386444.7820325,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5397031539888683,
+      "alpha": 5.294102884128858,
+      "beta": 5.705897115871142
+    },
+    {
+      "timestamp": 1767386457.5810041,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5378183504806882,
+      "alpha": 5.8319212346095455,
+      "beta": 6.1680787653904545
+    },
+    {
+      "timestamp": 1767386461.4272428,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5378183504806882,
+      "alpha": 6.369739585090233,
+      "beta": 6.630260414909767
+    },
+    {
+      "timestamp": 1767386474.8013067,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5378183504806882,
+      "alpha": 6.907557935570921,
+      "beta": 7.092442064429079
+    },
+    {
+      "timestamp": 1767386479.7011166,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5378183504806882,
+      "alpha": 7.445376286051609,
+      "beta": 7.554623713948391
+    },
+    {
+      "timestamp": 1767386482.8439326,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5378183504806882,
+      "alpha": 7.983194636532296,
+      "beta": 8.016805363467704
+    },
+    {
+      "timestamp": 1767386489.6235685,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5378183504806882,
+      "alpha": 8.521012987012984,
+      "beta": 8.478987012987016
+    },
+    {
+      "timestamp": 1767386498.3585086,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5386082274808176,
+      "alpha": 27.715748807036768,
+      "beta": 17.284251192963225
+    },
+    {
+      "timestamp": 1767386510.5318506,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5386082274808176,
+      "alpha": 28.254357034517586,
+      "beta": 17.745642965482407
+    },
+    {
+      "timestamp": 1767386528.7080195,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5467277064930041,
+      "alpha": 28.80108474101059,
+      "beta": 18.198915258989402
+    },
+    {
+      "timestamp": 1767386533.975126,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5249999999999999,
+      "alpha": 29.32608474101059,
+      "beta": 18.673915258989403
+    },
+    {
+      "timestamp": 1767386537.9125278,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5249999999999999,
+      "alpha": 29.851084741010588,
+      "beta": 19.148915258989405
+    },
+    {
+      "timestamp": 1767386555.3708653,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 4,
+      "reward": 0.5318350480688143,
+      "alpha": 9.052848035081798,
+      "beta": 8.947151964918202
+    },
+    {
+      "timestamp": 1767386568.6328888,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5327761299890386,
+      "alpha": 30.383860870999627,
+      "beta": 19.616139129000366
+    },
+    {
+      "timestamp": 1767386594.5282855,
+      "context": "visual_impairment:medium,motor_skills:medium,cognitive_load:medium",
+      "arm": 1,
+      "reward": 0.5423125282094268,
+      "alpha": 30.926173399209052,
+      "beta": 20.07382660079094
+    }
+  ]
+}
