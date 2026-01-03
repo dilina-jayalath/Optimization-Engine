@@ -17,11 +17,11 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Get current value based on parameter
       const currentValue = formData.currentValue || getCurrentValue(formData.parameter);
-      
+
       // NEW SIMPLIFIED FORMAT - Send current value + feedback, RL predicts next
       const feedbackData = {
         parameter: formData.parameter,
@@ -45,21 +45,21 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
       console.log('📤 Submitting feedback:', feedbackData);
       const result = await submitFeedback(userId, feedbackData);
       console.log('📥 Received result:', result);
-      
+
       // Auto-apply RL suggestion if available
       if (result.data?.nextSuggestion) {
         const suggestion = result.data.nextSuggestion;
         console.log('✨ Auto-applying RL suggestion:', suggestion.suggestedValue);
-        
+
         // First update local settings for immediate feedback
         updateSetting(formData.parameter, suggestion.suggestedValue);
-        
+
         // Then reload from backend to ensure we have the latest RL suggestions
         setTimeout(async () => {
           await reloadSettings();
           console.log('🔄 Reloaded settings from backend');
         }, 500);
-        
+
         // Show success message with what was changed
         if (onSettingsUpdate) {
           onSettingsUpdate({
@@ -69,9 +69,9 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
           });
         }
       }
-      
+
       closeAndReset();
-      
+
       // Notify parent component
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted(result);
@@ -82,19 +82,19 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
       setIsSubmitting(false);
     }
   };
-  
+
   const getCurrentValue = (parameter) => {
     // Return current value from global settings
     return settings[parameter] || formData.currentValue;
   };
-  
+
   const getDeviceType = () => {
     const width = window.innerWidth;
     if (width < 768) return 'mobile';
     if (width < 1024) return 'tablet';
     return 'desktop';
   };
-  
+
   const getTimeOfDay = () => {
     const hour = new Date().getHours();
     if (hour < 6) return 'night';
@@ -103,7 +103,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
     if (hour < 22) return 'evening';
     return 'night';
   };
-  
+
   const closeAndReset = () => {
     setFormData({
       rating: 5,
@@ -126,7 +126,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="btn btn-primary gap-2 shadow-lg"
       >
@@ -139,7 +139,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
             <h3 className="font-bold text-2xl mb-4 flex items-center gap-2">
               💬 Share Your Feedback
             </h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Rating */}
               <div>
@@ -152,9 +152,8 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                       key={star}
                       type="button"
                       onClick={() => handleRatingChange(star)}
-                      className={`text-5xl transition-transform hover:scale-110 ${
-                        star <= formData.rating ? 'opacity-100' : 'opacity-30'
-                      }`}
+                      className={`text-5xl transition-transform hover:scale-110 ${star <= formData.rating ? 'opacity-100' : 'opacity-30'
+                        }`}
                     >
                       {star <= formData.rating ? '⭐' : '☆'}
                     </button>
@@ -217,7 +216,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                   <option value="elementSpacing">↔️ Element Spacing</option>
                 </select>
               </div>
-              
+
               {/* Current Value */}
               <div>
                 <label className="label">

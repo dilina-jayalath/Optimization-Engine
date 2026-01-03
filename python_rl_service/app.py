@@ -163,6 +163,14 @@ def feedback():
         metadata = data.get('metadata', {})
         
         key = f"{user_id}:{parameter}"
+        
+        # Helper: Map component interaction to reward
+        if parameter == 'component_interaction':
+            # Create a virtual parameter for this component or map to general usability
+            # For this MVP, we map to 'global_usability' or specific component key
+            key = f"{user_id}:component_{data.get('currentValue', 'unknown')}"
+            print(f"⚠️ Tracking behavioral feedback for {key}")
+
         if key not in agents_data:
             agents_data[key] = {
                 'steps': 0,
@@ -179,7 +187,7 @@ def feedback():
             q_values[action] = 0.5
         
         # Simple Q-learning update: Q(a) = Q(a) + α[reward - Q(a)]
-        learning_rate = 0.1
+        learning_rate = 0.5 # Increased for Demo responsiveness
         old_q = q_values[action]
         q_values[action] = old_q + learning_rate * (reward - old_q)
         

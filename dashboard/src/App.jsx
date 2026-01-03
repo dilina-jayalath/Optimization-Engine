@@ -22,9 +22,9 @@ function AppContent({ userId, onUserChange }) {
   const [filterType, setFilterType] = useState('all'); // all, ml, manual, system
   const [activeTab, setActiveTab] = useState('changes'); // changes, feedback
   const [feedbackRefresh, setFeedbackRefresh] = useState(0);
-  
+
   const { settings, updateSetting } = useSettings();
-  
+
   const {
     history,
     currentIndex,
@@ -66,7 +66,7 @@ function AppContent({ userId, onUserChange }) {
     setFeedbackRefresh(prev => prev + 1); // Trigger refresh
     setActiveTab('feedback'); // Switch to feedback tab to show the new feedback
   };
-  
+
   const handleSettingsUpdate = (updateInfo) => {
     const { reason, confidence, ...settings } = updateInfo;
     const updates = Object.entries(settings)
@@ -77,7 +77,7 @@ function AppContent({ userId, onUserChange }) {
     showToast(`🤖 RL Auto-Applied: ${updates}${confidenceText}${reasonText}`, 'success');
     loadUserData(); // Reload to get updated settings
   };
-  
+
   const handleManualSettingChange = (changeInfo) => {
     const { parameter, oldValue, newValue } = changeInfo;
     showToast(`⚙️ Manual Change: ${parameter} changed from ${oldValue} to ${newValue} (RL model learning...)`, 'info');
@@ -158,7 +158,7 @@ function AppContent({ userId, onUserChange }) {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Theme Toggle Button */}
         <div className="fixed top-4 right-4 z-50">
-          <button 
+          <button
             onClick={toggleTheme}
             className="btn btn-circle btn-primary shadow-lg"
             title={`Switch to ${settings.theme === 'light' ? 'dark' : 'light'} mode`}
@@ -168,8 +168,8 @@ function AppContent({ userId, onUserChange }) {
         </div>
 
         <Header />
-        
-        <UserInfo 
+
+        <UserInfo
           userId={userId}
           userData={userData}
           onUserChange={onUserChange}
@@ -213,7 +213,7 @@ function AppContent({ userId, onUserChange }) {
                 userId={userId}
                 onSettingChange={handleManualSettingChange}
               />
-              <FeedbackForm 
+              <FeedbackForm
                 userId={userId}
                 onFeedbackSubmitted={handleFeedbackSubmitted}
                 onSettingsUpdate={handleSettingsUpdate}
@@ -291,7 +291,7 @@ function App() {
     params.set('userId', trimmed);
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   };
-  
+
   return (
     <SettingsProvider userId={userId}>
       <AppContent userId={userId} onUserChange={handleUserChange} />
