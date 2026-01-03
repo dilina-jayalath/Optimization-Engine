@@ -288,6 +288,27 @@ router.post('/apply', async (req, res) => {
       { upsert: true, new: true }
     );
 
+    // Also update User.currentSettings for dashboard persistence
+    const userUpdateData = {};
+    if (newSettings.fontSize) userUpdateData['currentSettings.fontSize'] = newSettings.fontSize;
+    if (newSettings.lineHeight) userUpdateData['currentSettings.lineHeight'] = newSettings.lineHeight;
+    if (newSettings.theme) userUpdateData['currentSettings.theme'] = newSettings.theme;
+    if (newSettings.contrast) userUpdateData['currentSettings.contrastMode'] = newSettings.contrast;
+    if (newSettings.spacing) userUpdateData['currentSettings.elementSpacing'] = newSettings.spacing;
+    if (newSettings.targetSize) {
+      const targetSizeValue = Number.parseInt(String(newSettings.targetSize), 10);
+      userUpdateData['currentSettings.targetSize'] = Number.isNaN(targetSizeValue) ? newSettings.targetSize : targetSizeValue;
+    }
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await User.findOneAndUpdate(
+        { userId },
+        { $set: userUpdateData },
+        { upsert: true }
+      );
+      console.log(`[Manual Settings] ✅ User.currentSettings updated for ${userId}`, userUpdateData);
+    }
+
     // Broadcast via SSE
     broadcastSettingsUpdate(userId, newSettings, 'manual');
 

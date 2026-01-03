@@ -36,9 +36,12 @@ const manualSettingsRouter = require('./routes/manual-settings');
 const trialsRouter = require('./routes/trials');
 const { router: settingsEventsRouter } = require('./routes/settings-events');
 const rlFeedbackRouter = require('./routes/rl-feedback');
+const userCategorizationRouter = require('./routes/user-categorization');
+const behaviorRlOptimizationRouter = require('./routes/behavior-rl-optimization');
 
 // Mount Week 1 routes
 app.use('/api/behavior', behaviorRouter);
+app.use('/api/behavior-rl', behaviorRlOptimizationRouter);
 app.use('/api/personalization', personalizationRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/feedback', feedbackRouter);
@@ -46,6 +49,7 @@ app.use('/api/manual-settings', manualSettingsRouter);
 app.use('/api/trials', trialsRouter);
 app.use('/api/settings-events', settingsEventsRouter);
 app.use('/api/rl-feedback', rlFeedbackRouter);
+app.use('/api/user-categorization', userCategorizationRouter);
 
 // Serve static dashboard files
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
