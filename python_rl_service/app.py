@@ -213,6 +213,82 @@ def feedback():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/rl/suggest', methods=['POST'])
+def suggest():
+    """
+    Get personalization suggestions for all parameters
+    Used by trial system to get ML-suggested profile
+    """
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        current_settings = data.get('currentSettings', {})
+        context = data.get('context', {})
+        
+        print(f"🎯 Generating suggestions for userId={user_id}")
+        
+        suggestions = {}
+        
+        # For each parameter, get best action
+        for parameter, current_value in current_settings.items():
+            key = f"{user_id}:{parameter}"
+            
+            # Get or initialize agent data
+            if key not in agents_data:
+                agents_data[key] = {
+                    'steps': 0,
+                    'epsilon': 0.2,
+                    'q_values': {},
+                    'created': datetime.now(timezone.utc).isoformat()
+                }
+            
+            agent_data = agents_data[key]
+            q_values = agent_data.get('q_values', {})
+            
+            # Get action space
+            action_space = get_action_space(parameter)
+            
+            # Initialize Q-values if empty
+            if not q_values:
+                q_values = {action: 0.5 for action in action_space}
+                agent_data['q_values'] = q_values
+            
+            # Find best action (highest Q-value) that's different from current
+            best_action = None
+            best_q = -float('inf')
+            
+            for action, q_val in q_values.items():
+                if action != current_value and q_val > best_q:
+                    best_q = q_val
+                    best_action = action
+            
+            # If we found a better action with Q > 0.5, suggest it
+            if best_action and best_q > 0.5:
+                suggestions[parameter] = best_action
+                print(f"   {parameter}: {current_value} → {best_action} (Q={best_q:.3f})")
+        
+        if not suggestions:
+            # No learned preferences, suggest exploration
+            # Pick first unlocked parameter and suggest next value
+            for parameter, current_value in list(current_settings.items())[:1]:
+                action_space = get_action_space(parameter)
+                if current_value in action_space:
+                    current_idx = action_space.index(current_value)
+                    next_idx = (current_idx + 1) % len(action_space)
+                    suggestions[parameter] = action_space[next_idx]
+                    print(f"   {parameter}: {current_value} → {suggestions[parameter]} (exploration)")
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions,
+            'userId': user_id,
+            'context': context
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/rl/stats', methods=['GET'])
 def stats():
     """Get stats"""

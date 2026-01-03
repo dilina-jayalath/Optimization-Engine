@@ -34,6 +34,7 @@ const { router: profilesRouter } = require('./routes/profiles');
 const feedbackRouter = require('./routes/feedback');
 const manualSettingsRouter = require('./routes/manual-settings');
 const trialsRouter = require('./routes/trials');
+const { router: settingsEventsRouter } = require('./routes/settings-events');
 
 // Mount Week 1 routes
 app.use('/api/behavior', behaviorRouter);
@@ -42,6 +43,7 @@ app.use('/api/profiles', profilesRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/manual-settings', manualSettingsRouter);
 app.use('/api/trials', trialsRouter);
+app.use('/api/settings-events', settingsEventsRouter);
 
 // Serve static dashboard files
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));

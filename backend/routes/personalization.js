@@ -2,7 +2,8 @@
 const express = require('express');
 const axios = require('axios');
 const { Profile } = require('./profiles');
-const { ManualSettings } = require('../mongodb/schemas');
+const { ManualSettings, PreferenceState, User } = require('../mongodb/schemas');
+const { getMappedValue } = require('../config/ladders');
 const router = express.Router();
 
 // Python Personalization Service URL (Week 2 - Thompson Sampling)
@@ -25,6 +26,36 @@ const mapFeedbackToReward = (feedback) => {
   if (type === 'neutral') return 0.5;
   if (type === 'negative') return 0.0;
   return 0.5;
+};
+
+const PROFILE_KEY_TO_SETTING_KEY = {
+  fontSize: 'visual.fontSize',
+  lineHeight: 'visual.lineHeight',
+  theme: 'visual.theme',
+  contrast: 'visual.contrast',
+  spacing: 'layout.spacing',
+  targetSize: 'motor.targetSize'
+};
+
+const SETTING_KEY_TO_PROFILE_KEY = Object.entries(PROFILE_KEY_TO_SETTING_KEY)
+  .reduce((acc, [profileKey, settingKey]) => {
+    acc[settingKey] = profileKey;
+    return acc;
+  }, {});
+
+const mapSettingKeyToProfileKey = (settingKey) => {
+  return SETTING_KEY_TO_PROFILE_KEY[settingKey] || settingKey;
+};
+
+const resolveProfileValue = (profileKey, value) => {
+  const settingKey = PROFILE_KEY_TO_SETTING_KEY[profileKey];
+  if (!settingKey) return value;
+
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.includes('px')) return value;
+
+  const mapped = getMappedValue(settingKey, value);
+  return mapped ?? value;
 };
 
 /**
@@ -116,52 +147,9 @@ router.get('/', async (req, res) => {
       cognitive_load: Number(profile.cognitive_load ?? 0.5),
     };
 
-    // Week 2: Call Thompson Sampling service for personalization
-    try {
-      const tsResponse = await axios.post(`${PERSONALIZATION_SERVICE}/personalize`, {
-        userId,
-        context,
-        mode, // 'explore' or 'exploit'
-      });
-
-      if (tsResponse.data?.success) {
-        const { settings, armIndex, sessionId } = tsResponse.data;
-
-        const personalizationResponse = {
-          success: true,
-          userId,
-          clientDomain: clientDomain || null,
-          settings: {
-            variant: settings.name || 'personalized',
-            fontSize: settings.fontSize,
-            lineHeight: settings.lineHeight,
-            contrast: settings.contrast,
-            spacing: settings.spacing,
-            targetSize: settings.targetSize,
-            // Map to your existing format
-            primaryColor: settings.contrast === 'high' ? '#000000' : '#007bff',
-            theme: settings.contrast === 'high' ? 'dark' : 'light',
-          },
-          sessionId,
-          armIndex,
-          source: 'thompson-sampling',
-          mode,
-          confidence: 0.8,  // Thompson Sampling provides implicit confidence
-          timestamp: new Date().toISOString(),
-        };
-
-        // Cache the personalization (sticky for 30 minutes)
-        sessionCache.set(cacheKey, {
-          response: personalizationResponse,
-          timestamp: Date.now(),
-        });
-        
-        return res.json(personalizationResponse);
-      }
-    } catch (tsError) {
-      console.error('[Personalization] Thompson Sampling service error:', tsError.message);
-      // Fallback to baseline if Thompson Sampling fails
-    }
+    // Phase 2: Thompson Sampling removed - use /api/trials/propose instead
+    // This legacy endpoint now returns baseline profile for backward compatibility
+    console.log('[Personalization] Thompson Sampling disabled - use /api/trials for Phase 2');
 
     // Fallback to baseline (Week 1 behavior)
     const settings = {
@@ -195,6 +183,112 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/personalization/:userId
+ * 
+ * Returns the effective profile after applying trial preferences and overrides.
+ */
+router.get('/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    let user = await User.findOne({ userId });
+    if (!user) {
+      user = await new User({ userId }).save();
+    }
+
+    const manualSettings = await ManualSettings.findOne({ userId });
+    if (manualSettings && manualSettings.enabled) {
+      return res.json({
+        success: true,
+        userId,
+        source: 'manual',
+        effectiveProfile: {
+          fontSize: manualSettings.fontSize,
+          lineHeight: manualSettings.lineHeight,
+          contrast: manualSettings.contrast,
+          spacing: manualSettings.spacing,
+          targetSize: manualSettings.targetSize,
+          theme: manualSettings.theme,
+          reducedMotion: manualSettings.reducedMotion,
+          primaryColor: manualSettings.primaryColor,
+          secondaryColor: manualSettings.secondaryColor,
+          accentColor: manualSettings.accentColor
+        },
+        rawProfile: null,
+        meta: {
+          lockedSettings: [],
+          preferenceCount: 0
+        }
+      });
+    }
+
+    const preferences = await PreferenceState.find({ userId });
+    const preferenceOverrides = {};
+    const lockedSettings = [];
+
+    for (const pref of preferences) {
+      const profileKey = mapSettingKeyToProfileKey(pref.settingKey);
+      const chosenValue = pref.locked
+        ? (pref.preferredValue || pref.currentValue)
+        : pref.currentValue;
+      preferenceOverrides[profileKey] = chosenValue;
+
+      if (pref.locked) {
+        lockedSettings.push(pref.settingKey);
+      }
+    }
+
+    const manualOverridesRaw = user.manualOverrides
+      ? Object.fromEntries(user.manualOverrides)
+      : {};
+    const manualOverrides = {};
+
+    for (const [key, payload] of Object.entries(manualOverridesRaw)) {
+      const value = payload && Object.prototype.hasOwnProperty.call(payload, 'value')
+        ? payload.value
+        : payload;
+      const profileKey = mapSettingKeyToProfileKey(key);
+      manualOverrides[profileKey] = value;
+    }
+
+    const mlProfile = user.mlProfile?.mergedProfile || {};
+    const rawProfile = {
+      ...mlProfile,
+      ...preferenceOverrides,
+      ...manualOverrides
+    };
+    const effectiveProfile = {};
+
+    for (const [profileKey, value] of Object.entries(rawProfile)) {
+      effectiveProfile[profileKey] = resolveProfileValue(profileKey, value);
+    }
+
+    res.json({
+      success: true,
+      userId,
+      source: 'trial-based',
+      effectiveProfile,
+      rawProfile,
+      sources: {
+        mlProfile,
+        trialOverrides: preferenceOverrides,
+        manualOverrides
+      },
+      meta: {
+        lockedSettings,
+        preferenceCount: preferences.length
+      }
+    });
+  } catch (error) {
+    console.error('[Personalization API] Effective profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

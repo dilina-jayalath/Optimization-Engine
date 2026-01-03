@@ -12,10 +12,10 @@ import SettingsDisplay from './components/SettingsDisplay';
 import Toast from './components/Toast';
 import { useHistory } from './hooks/useHistory';
 import { fetchUserData } from './services/api';
+import TrialInsights from './components/TrialInsights';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 
-function AppContent() {
-  const [userId, setUserId] = useState('u_001'); // Default user
+function AppContent({ userId, onUserChange }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -172,12 +172,14 @@ function AppContent() {
         <UserInfo 
           userId={userId}
           userData={userData}
-          onUserChange={setUserId}
+          onUserChange={onUserChange}
         />
 
         <StatsCards stats={stats} />
 
         <SettingsDisplay />
+
+        <TrialInsights userId={userId} />
 
         <ControlPanel
           canUndo={canUndo}
@@ -270,12 +272,29 @@ function AppContent() {
   );
 }
 
+function getInitialUserId() {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get('userId');
+  const stored = window.localStorage.getItem('aura_user_id');
+  return (fromQuery || stored || 'guest').trim();
+}
+
 function App() {
-  const [userId] = useState('u_001');
+  const [userId, setUserId] = useState(getInitialUserId());
+
+  const handleUserChange = (nextUserId) => {
+    const trimmed = nextUserId.trim();
+    if (!trimmed) return;
+    setUserId(trimmed);
+    window.localStorage.setItem('aura_user_id', trimmed);
+    const params = new URLSearchParams(window.location.search);
+    params.set('userId', trimmed);
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+  };
   
   return (
     <SettingsProvider userId={userId}>
-      <AppContent />
+      <AppContent userId={userId} onUserChange={handleUserChange} />
     </SettingsProvider>
   );
 }

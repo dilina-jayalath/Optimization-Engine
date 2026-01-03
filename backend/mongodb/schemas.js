@@ -474,11 +474,13 @@ const trialSchema = new mongoose.Schema({
     default: 'pending'
   },
   
+  promptedAt: Date,
+  
   // Explicit feedback if prompt shown
   feedback: {
     given: { type: Boolean, default: false },
-    type: { type: String, enum: ['like', 'dislike'] },
-    reason: { type: String, enum: ['too_big', 'too_small', 'other', 'dismiss'] },
+    type: { type: String, enum: ['like', 'dislike', 'manual'] },
+    reason: { type: String, enum: ['too_big', 'too_small', 'other', 'dismiss', 'manual'] },
     timestamp: Date
   },
   

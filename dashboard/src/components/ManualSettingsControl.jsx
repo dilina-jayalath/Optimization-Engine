@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { submitFeedback } from '../services/api';
+import { submitFeedback, updateManualSettings } from '../services/api';
 
 function ManualSettingsControl({ userId, onSettingChange }) {
   const { settings, updateSetting } = useSettings();
@@ -20,6 +20,22 @@ function ManualSettingsControl({ userId, onSettingChange }) {
     try {
       // Update UI immediately
       updateSetting(parameter, newValue);
+
+      const nextSettings = {
+        ...settings,
+        [parameter]: newValue
+      };
+
+      await updateManualSettings(userId, {
+        enabled: true,
+        fontSize: nextSettings.fontSize,
+        lineHeight: nextSettings.lineHeight,
+        contrast: nextSettings.contrastMode,
+        spacing: nextSettings.elementSpacing,
+        targetSize: nextSettings.targetSize,
+        theme: nextSettings.theme,
+        reducedMotion: false
+      });
       
       // Send to backend as implicit positive feedback
       // User manually chose this value = they want it = positive feedback

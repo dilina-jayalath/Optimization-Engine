@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { ManualSettings } = require('../mongodb/schemas');
+const { ManualSettings, User } = require('../mongodb/schemas');
+const { broadcastSettingsUpdate } = require('./settings-events');
 
 /**
  * Manual Settings API
@@ -103,7 +104,39 @@ router.put('/:userId', async (req, res) => {
       { upsert: true, new: true }
     );
 
+    const targetSizeValue = Number.parseInt(String(settings.targetSize), 10);
+
+    await User.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          'currentSettings.fontSize': settings.fontSize,
+          'currentSettings.lineHeight': settings.lineHeight,
+          'currentSettings.theme': settings.theme,
+          'currentSettings.contrastMode': settings.contrast,
+          'currentSettings.elementSpacing': settings.spacing,
+          'currentSettings.targetSize': Number.isNaN(targetSizeValue) ? settings.targetSize : targetSizeValue
+        }
+      },
+      { upsert: true }
+    );
+
     console.log(`[Manual Settings] Settings updated successfully for ${userId}`);
+
+    // Broadcast settings update to all connected clients via SSE
+    broadcastSettingsUpdate(userId, {
+      enabled: settings.enabled,
+      fontSize: settings.fontSize,
+      lineHeight: settings.lineHeight,
+      contrast: settings.contrast,
+      spacing: settings.spacing,
+      targetSize: settings.targetSize,
+      theme: settings.theme,
+      reducedMotion: settings.reducedMotion,
+      primaryColor: settings.primaryColor,
+      secondaryColor: settings.secondaryColor,
+      accentColor: settings.accentColor,
+    }, 'manual');
 
     res.json({
       success: true,

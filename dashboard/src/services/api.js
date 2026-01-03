@@ -79,6 +79,36 @@ export async function clearHistory(userId) {
   }
 }
 
+export async function fetchEffectiveProfile(userId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/personalization/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching effective profile:', error);
+    throw error;
+  }
+}
+
+export async function fetchTrialPreferences(userId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/trials/preferences/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching trial preferences:', error);
+    throw error;
+  }
+}
+
+export async function updateManualSettings(userId, settings) {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/manual-settings/${userId}`, settings);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating manual settings:', error);
+    throw error;
+  }
+}
+
 // Alias for updating user settings (same as applySettings)
 export async function updateUserSettings(userId, settings) {
   return applySettings(userId, settings, 'rl');
