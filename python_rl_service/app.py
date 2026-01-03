@@ -369,7 +369,10 @@ def get_action_space(parameter):
         'theme': ['light', 'dark', 'auto'],
         'contrastMode': ['normal', 'high'],
         'elementSpacing': ['compact', 'normal', 'wide'],
-        'targetSize': [24, 28, 32, 36, 40, 44]
+        'targetSize': [24, 28, 32, 36, 40, 44, 48, 52, 60, 72],
+        'reducedMotion': [False, True],
+        'tooltipAssist': [False, True],
+        'layoutSimplification': [False, True]
     }
     return action_spaces.get(parameter, ['default'])
 
