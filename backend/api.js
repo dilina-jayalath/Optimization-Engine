@@ -33,6 +33,7 @@ const personalizationRouter = require('./routes/personalization');
 const { router: profilesRouter } = require('./routes/profiles');
 const feedbackRouter = require('./routes/feedback');
 const manualSettingsRouter = require('./routes/manual-settings');
+const trialsRouter = require('./routes/trials');
 
 // Mount Week 1 routes
 app.use('/api/behavior', behaviorRouter);
@@ -40,6 +41,7 @@ app.use('/api/personalization', personalizationRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/manual-settings', manualSettingsRouter);
+app.use('/api/trials', trialsRouter);
 
 // Serve static dashboard files
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));

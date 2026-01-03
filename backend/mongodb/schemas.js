@@ -389,6 +389,190 @@ const manualSettingsSchema = new mongoose.Schema({
 manualSettingsSchema.index({ userId: 1 });
 
 // =====================================================
+// 8. TRIAL SCHEMA (Trial-Based System)
+// =====================================================
+const trialSchema = new mongoose.Schema({
+  trialId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  
+  userId: {
+    type: String,
+    required: true,
+    index: true
+  },
+  
+  sessionId: {
+    type: String,
+    required: true
+  },
+  
+  settingKey: {
+    type: String,
+    required: true // e.g., 'visual.fontSize', 'motor.targetSize'
+  },
+  
+  oldValue: {
+    type: String,
+    required: true // e.g., 'medium'
+  },
+  
+  newValue: {
+    type: String,
+    required: true // e.g., 'large'
+  },
+  
+  context: {
+    pageType: String,     // 'checkout', 'product', 'home'
+    deviceType: String,   // 'mobile', 'desktop', 'tablet'
+    timeOfDay: String,    // 'morning', 'afternoon', 'evening'
+    userSegment: String   // 'new', 'returning', 'power'
+  },
+  
+  attemptNumber: {
+    type: Number,
+    default: 1 // 1st, 2nd, or 3rd attempt
+  },
+  
+  // Evaluation
+  status: {
+    type: String,
+    enum: ['active', 'accepted', 'reverted', 'awaiting_feedback', 'completed'],
+    default: 'active'
+  },
+  
+  startTime: {
+    type: Date,
+    default: Date.now
+  },
+  
+  endTime: Date,
+  
+  // Anomaly metrics collected during trial
+  metrics: {
+    clickCount: { type: Number, default: 0 },
+    misclickCount: { type: Number, default: 0 },
+    rageClickCount: { type: Number, default: 0 },
+    avgTimeToClick: { type: Number, default: 0 },
+    formErrorCount: { type: Number, default: 0 },
+    zoomEventCount: { type: Number, default: 0 },
+    scrollDepth: { type: Number, default: 0 },
+    dwellTime: { type: Number, default: 0 }
+  },
+  
+  anomalyScore: {
+    type: Number,
+    default: 0
+  },
+  
+  decision: {
+    type: String,
+    enum: ['accept', 'revert', 'prompt', 'pending'],
+    default: 'pending'
+  },
+  
+  // Explicit feedback if prompt shown
+  feedback: {
+    given: { type: Boolean, default: false },
+    type: { type: String, enum: ['like', 'dislike'] },
+    reason: { type: String, enum: ['too_big', 'too_small', 'other', 'dismiss'] },
+    timestamp: Date
+  },
+  
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+trialSchema.index({ userId: 1, settingKey: 1, createdAt: -1 });
+trialSchema.index({ sessionId: 1 });
+trialSchema.index({ status: 1 });
+
+// =====================================================
+// 9. PREFERENCE STATE SCHEMA (Trial-Based System)
+// =====================================================
+const preferenceStateSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+    index: true
+  },
+  
+  settingKey: {
+    type: String,
+    required: true // e.g., 'visual.fontSize'
+  },
+  
+  // Current state in ladder
+  currentValue: {
+    type: String,
+    required: true // e.g., 'medium'
+  },
+  
+  currentIndex: {
+    type: Number,
+    required: true // Index in ladder array
+  },
+  
+  // Preference discovery
+  preferredValue: String,    // Set when user confirms preference
+  preferredIndex: Number,    // Index of preferred value
+  
+  locked: {
+    type: Boolean,
+    default: false // If true, don't change this setting anymore
+  },
+  
+  // Trial history for this setting
+  trialCount: {
+    type: Number,
+    default: 0
+  },
+  
+  successfulTrials: {
+    type: Number,
+    default: 0
+  },
+  
+  failedTrials: {
+    type: Number,
+    default: 0
+  },
+  
+  // Cooldown management
+  cooldownUntil: Date,       // Don't prompt before this time
+  lastPromptAt: Date,        // Last time we asked for feedback
+  lastTrialAt: Date,         // Last time we started a trial
+  
+  // Context-specific tracking
+  negativeCountInContext: {
+    type: Map,
+    of: Number,
+    default: new Map() // { 'checkout': 2, 'product': 0 }
+  },
+  
+  // User engagement
+  dismissCount: {
+    type: Number,
+    default: 0
+  },
+  
+  feedbackCount: {
+    type: Number,
+    default: 0
+  },
+  
+  // Metadata
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+preferenceStateSchema.index({ userId: 1, settingKey: 1 }, { unique: true });
+preferenceStateSchema.index({ locked: 1 });
+
+// =====================================================
 // EXPORT MODELS
 // =====================================================
 const User = mongoose.model('User', userSchema);
@@ -398,6 +582,8 @@ const Feedback = mongoose.model('Feedback', feedbackSchema);
 const OptimizationEvent = mongoose.model('OptimizationEvent', optimizationEventSchema);
 const Session = mongoose.model('Session', sessionSchema);
 const ManualSettings = mongoose.model('ManualSettings', manualSettingsSchema);
+const Trial = mongoose.model('Trial', trialSchema);
+const PreferenceState = mongoose.model('PreferenceState', preferenceStateSchema);
 
 module.exports = {
   User,
@@ -406,5 +592,7 @@ module.exports = {
   Feedback,
   OptimizationEvent,
   Session,
-  ManualSettings
+  ManualSettings,
+  Trial,
+  PreferenceState
 };

@@ -1,5 +1,47 @@
 # Adaptive UI Optimization Engine
 
+## 🎯 Two Personalization Systems
+
+This project implements **two complementary personalization approaches**:
+
+### 1. Thompson Sampling System (Weeks 2-4)
+- **Type**: Continuous multi-arm bandit optimization
+- **Approach**: Explores all settings simultaneously
+- **Feedback**: Binary (👍/👎) after 30s delay
+- **Use Case**: General personalization & learning
+
+### 2. Trial-Based System (NEW - ✅ Phase 1 Complete)
+- **Type**: Anomaly-driven bounded search with preference locking
+- **Approach**: Tests one setting at a time, only when problems detected
+- **Feedback**: Directional (too big/small/other)
+- **Use Case**: Safe testing of ML suggestions + preference discovery
+
+> **Current Focus**: Trial-Based System (avoids duplication with group member's ML engine)
+
+---
+
+## 🚀 Quick Start - Trial-Based System
+
+```bash
+# 1. Start backend
+npm run dev
+
+# 2. Run tests
+node test-trial-system.js
+
+# Expected: ✅ All tests passed!
+```
+
+**Documentation**:
+- 📘 [Complete Guide](TRIAL_BASED_SYSTEM.md) - Full system explanation
+- 📊 [System Flow](SYSTEM_FLOW_DIAGRAM.md) - Visual diagrams
+- ✅ [Checklist](CHECKLIST.md) - Implementation status
+- ⚡ [Quick Reference](QUICK_REFERENCE.md) - Commands & API
+
+---
+
+## Original Architecture
+
 Your proprietary optimization engine that combines:
 - **ML Predictions** (category-wise + user-wise profiles)
 - **Reinforcement Learning** (Q-Learning algorithm)
