@@ -251,4 +251,62 @@ router.post('/:userId/reset', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/manual-settings/apply
+ * Quick apply settings and broadcast via SSE (for demos and RL optimization)
+ */
+router.post('/apply', async (req, res) => {
+  try {
+    const { userId, settings: newSettings } = req.body;
+
+    if (!userId || !newSettings) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId and settings are required'
+      });
+    }
+
+    console.log(`[Manual Settings] Quick apply for userId=${userId}`, newSettings);
+
+    // Update settings in database
+    const settings = await ManualSettings.findOneAndUpdate(
+      { userId },
+      {
+        userId,
+        enabled: true,
+        ...(newSettings.fontSize && { fontSize: newSettings.fontSize }),
+        ...(newSettings.lineHeight && { lineHeight: newSettings.lineHeight }),
+        ...(newSettings.contrast && { contrast: newSettings.contrast }),
+        ...(newSettings.spacing && { spacing: newSettings.spacing }),
+        ...(newSettings.targetSize && { targetSize: newSettings.targetSize }),
+        ...(newSettings.theme && { theme: newSettings.theme }),
+        ...(newSettings.reducedMotion !== undefined && { reducedMotion: newSettings.reducedMotion }),
+        ...(newSettings.primaryColor && { primaryColor: newSettings.primaryColor }),
+        ...(newSettings.secondaryColor && { secondaryColor: newSettings.secondaryColor }),
+        ...(newSettings.accentColor && { accentColor: newSettings.accentColor }),
+      },
+      { upsert: true, new: true }
+    );
+
+    // Broadcast via SSE
+    broadcastSettingsUpdate(userId, newSettings, 'manual');
+
+    console.log(`[Manual Settings] ✅ Settings applied and broadcasted for ${userId}`);
+
+    res.json({
+      success: true,
+      userId,
+      message: 'Settings applied and broadcasted',
+      settings: newSettings
+    });
+  } catch (error) {
+    console.error('[Manual Settings] Error applying settings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to apply settings',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router;
