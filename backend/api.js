@@ -34,7 +34,7 @@ const { router: profilesRouter } = require('./routes/profiles');
 const feedbackRouter = require('./routes/feedback');
 const manualSettingsRouter = require('./routes/manual-settings');
 const trialsRouter = require('./routes/trials');
-const { router: settingsEventsRouter } = require('./routes/settings-events');
+const { router: settingsEventsRouter, broadcastSettingsUpdate } = require('./routes/settings-events');
 const rlFeedbackRouter = require('./routes/rl-feedback');
 const userCategorizationRouter = require('./routes/user-categorization');
 const behaviorRlOptimizationRouter = require('./routes/behavior-rl-optimization');
@@ -101,6 +101,9 @@ app.post('/api/users/:userId/settings', async (req, res) => {
       success: true
     });
     
+    // Broadcast update
+    broadcastSettingsUpdate(userId, updatedSettings, source);
+    
     res.json({
       success: true,
       data: updatedSettings
@@ -131,6 +134,32 @@ app.post('/api/users/:userId/ml-profile', async (req, res) => {
       profileType: 'ml',
       success: true
     });
+    
+    // Broadcast update - convert ML profile to flat settings for frontend
+    const flatSettings = {
+      fontSize: mlProfile.mergedProfile.font_size,
+      theme: mlProfile.mergedProfile.theme,
+      // ... map other fields if needed, or send full profile if frontend handles it
+    };
+    // For now, let's assume frontend refreshes or we explicitly broadcast what changed
+    // Actually best to assume AdaptiveProvider re-fetches or we send a "reload" signal
+    // But broadcastSettingsUpdate expects settings object.
+    
+    // Let's just broadcast the merged profile properties that match settings
+    broadcastSettingsUpdate(userId, {
+        fontSize: mlProfile.mergedProfile.font_size,
+        theme: mlProfile.mergedProfile.theme,
+        contrast: mlProfile.mergedProfile.contrast_mode,
+        lineHeight: mlProfile.mergedProfile.line_height,
+        primaryColor: mlProfile.mergedProfile.primary_color,
+        secondaryColor: mlProfile.mergedProfile.secondary_color,
+        accentColor: mlProfile.mergedProfile.accent_color,
+        reducedMotion: mlProfile.mergedProfile.reduced_motion,
+        spacing: mlProfile.mergedProfile.element_spacing,
+        targetSize: mlProfile.mergedProfile.target_size,
+        tooltipAssist: mlProfile.mergedProfile.tooltip_assist,
+        layoutSimplification: mlProfile.mergedProfile.layout_simplification
+    }, 'ml');
     
     res.json({
       success: true,

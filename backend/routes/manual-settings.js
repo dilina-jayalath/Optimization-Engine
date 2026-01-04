@@ -46,6 +46,9 @@ router.get('/:userId', async (req, res) => {
         primaryColor: settings.primaryColor,
         secondaryColor: settings.secondaryColor,
         accentColor: settings.accentColor,
+        accentColor: settings.accentColor,
+        tooltipAssist: settings.tooltipAssist,
+        layoutSimplification: settings.layoutSimplification,
         lastModified: settings.updatedAt,
       },
     });
@@ -77,12 +80,16 @@ router.put('/:userId', async (req, res) => {
       primaryColor,
       secondaryColor,
       accentColor,
+      tooltipAssist,
+      layoutSimplification,
     } = req.body;
 
     console.log(`[Manual Settings] Updating settings for userId=${userId}`, {
       enabled,
       fontSize,
       contrast,
+      tooltipAssist,
+      layoutSimplification
     });
 
     const settings = await ManualSettings.findOneAndUpdate(
@@ -100,6 +107,8 @@ router.put('/:userId', async (req, res) => {
         primaryColor: primaryColor || '#007bff',
         secondaryColor: secondaryColor || '#6c757d',
         accentColor: accentColor || '#28a745',
+        tooltipAssist: tooltipAssist ?? false,
+        layoutSimplification: layoutSimplification ?? false,
       },
       { upsert: true, new: true }
     );
@@ -115,7 +124,9 @@ router.put('/:userId', async (req, res) => {
           'currentSettings.theme': settings.theme,
           'currentSettings.contrastMode': settings.contrast,
           'currentSettings.elementSpacing': settings.spacing,
-          'currentSettings.targetSize': Number.isNaN(targetSizeValue) ? settings.targetSize : targetSizeValue
+          'currentSettings.targetSize': Number.isNaN(targetSizeValue) ? settings.targetSize : targetSizeValue,
+          'currentSettings.tooltipAssist': settings.tooltipAssist,
+          'currentSettings.layoutSimplification': settings.layoutSimplification
         }
       },
       { upsert: true }
@@ -136,6 +147,8 @@ router.put('/:userId', async (req, res) => {
       primaryColor: settings.primaryColor,
       secondaryColor: settings.secondaryColor,
       accentColor: settings.accentColor,
+      tooltipAssist: settings.tooltipAssist,
+      layoutSimplification: settings.layoutSimplification,
     }, 'manual');
 
     res.json({
@@ -153,6 +166,10 @@ router.put('/:userId', async (req, res) => {
         primaryColor: settings.primaryColor,
         secondaryColor: settings.secondaryColor,
         accentColor: settings.accentColor,
+        secondaryColor: settings.secondaryColor,
+        accentColor: settings.accentColor,
+        tooltipAssist: settings.tooltipAssist,
+        layoutSimplification: settings.layoutSimplification,
         lastModified: settings.updatedAt,
       },
     });
@@ -218,6 +235,8 @@ router.post('/:userId/reset', async (req, res) => {
         primaryColor: '#007bff',
         secondaryColor: '#6c757d',
         accentColor: '#28a745',
+        tooltipAssist: false,
+        layoutSimplification: false,
       },
       { upsert: true, new: true }
     );
@@ -239,7 +258,10 @@ router.post('/:userId/reset', async (req, res) => {
         reducedMotion: settings.reducedMotion,
         primaryColor: settings.primaryColor,
         secondaryColor: settings.secondaryColor,
+        secondaryColor: settings.secondaryColor,
         accentColor: settings.accentColor,
+        tooltipAssist: settings.tooltipAssist,
+        layoutSimplification: settings.layoutSimplification,
       },
     });
   } catch (error) {
@@ -284,6 +306,8 @@ router.post('/apply', async (req, res) => {
         ...(newSettings.primaryColor && { primaryColor: newSettings.primaryColor }),
         ...(newSettings.secondaryColor && { secondaryColor: newSettings.secondaryColor }),
         ...(newSettings.accentColor && { accentColor: newSettings.accentColor }),
+        ...(newSettings.tooltipAssist !== undefined && { tooltipAssist: newSettings.tooltipAssist }),
+        ...(newSettings.layoutSimplification !== undefined && { layoutSimplification: newSettings.layoutSimplification }),
       },
       { upsert: true, new: true }
     );
@@ -299,6 +323,8 @@ router.post('/apply', async (req, res) => {
       const targetSizeValue = Number.parseInt(String(newSettings.targetSize), 10);
       userUpdateData['currentSettings.targetSize'] = Number.isNaN(targetSizeValue) ? newSettings.targetSize : targetSizeValue;
     }
+    if (newSettings.tooltipAssist !== undefined) userUpdateData['currentSettings.tooltipAssist'] = newSettings.tooltipAssist;
+    if (newSettings.layoutSimplification !== undefined) userUpdateData['currentSettings.layoutSimplification'] = newSettings.layoutSimplification;
 
     if (Object.keys(userUpdateData).length > 0) {
       await User.findOneAndUpdate(

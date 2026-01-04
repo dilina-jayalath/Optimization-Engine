@@ -9,14 +9,14 @@ function ManualSettingsControl({ userId, onSettingChange }) {
 
   const handleManualChange = async (parameter, newValue) => {
     const oldValue = settings[parameter];
-    
+
     if (oldValue === newValue) {
       console.log('⚠️ No change detected');
       return;
     }
 
     setIsSaving(true);
-    
+
     try {
       // Update UI immediately
       updateSetting(parameter, newValue);
@@ -34,9 +34,15 @@ function ManualSettingsControl({ userId, onSettingChange }) {
         spacing: nextSettings.elementSpacing,
         targetSize: nextSettings.targetSize,
         theme: nextSettings.theme,
-        reducedMotion: false
+        theme: nextSettings.theme,
+        reducedMotion: nextSettings.reducedMotion ?? false,
+        tooltipAssist: nextSettings.tooltipAssist ?? false,
+        layoutSimplification: nextSettings.layoutSimplification ?? false,
+        primaryColor: nextSettings.primaryColor,
+        secondaryColor: nextSettings.secondaryColor,
+        accentColor: nextSettings.accentColor
       });
-      
+
       // Send to backend as implicit positive feedback
       // User manually chose this value = they want it = positive feedback
       const feedbackData = {
@@ -69,7 +75,7 @@ function ManualSettingsControl({ userId, onSettingChange }) {
       console.log('📤 Sending manual change as positive feedback to RL:', feedbackData);
       const result = await submitFeedback(userId, feedbackData);
       console.log('✅ RL model learned from manual change:', result);
-      
+
       if (onSettingChange) {
         onSettingChange({ parameter, oldValue, newValue });
       }
@@ -98,7 +104,7 @@ function ManualSettingsControl({ userId, onSettingChange }) {
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="btn btn-secondary gap-2"
       >
@@ -112,7 +118,7 @@ function ManualSettingsControl({ userId, onSettingChange }) {
             <p className="text-sm opacity-70 mb-6">
               Your manual changes help train the RL model! 🤖 Each selection teaches the AI your preferences.
             </p>
-            
+
             <div className="space-y-6">
               {/* Font Size */}
               <div className="form-control">
@@ -260,6 +266,90 @@ function ManualSettingsControl({ userId, onSettingChange }) {
                 </div>
               </div>
 
+              {/* Accessibility Section */}
+              <div className="divider text-sm font-bold opacity-50">ACCESSIBILITY</div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <span className="label-text font-semibold">Reduced Motion</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={settings.reducedMotion || false}
+                    onChange={(e) => handleManualChange('reducedMotion', e.target.checked)}
+                    disabled={isSaving}
+                  />
+                </label>
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <span className="label-text font-semibold">Tooltip Assist</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={settings.tooltipAssist || false}
+                    onChange={(e) => handleManualChange('tooltipAssist', e.target.checked)}
+                    disabled={isSaving}
+                  />
+                </label>
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <span className="label-text font-semibold">Layout Simplification</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={settings.layoutSimplification || false}
+                    onChange={(e) => handleManualChange('layoutSimplification', e.target.checked)}
+                    disabled={isSaving}
+                  />
+                </label>
+              </div>
+
+              {/* Branding Section */}
+              <div className="divider text-sm font-bold opacity-50">BRANDING COLORS</div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-xs">Primary</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="h-10 w-full cursor-pointer rounded-lg border border-base-300"
+                    value={settings.primaryColor || '#007bff'}
+                    onChange={(e) => handleManualChange('primaryColor', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-xs">Secondary</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="h-10 w-full cursor-pointer rounded-lg border border-base-300"
+                    value={settings.secondaryColor || '#6c757d'}
+                    onChange={(e) => handleManualChange('secondaryColor', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text text-xs">Accent</span>
+                  </label>
+                  <input
+                    type="color"
+                    className="h-10 w-full cursor-pointer rounded-lg border border-base-300"
+                    value={settings.accentColor || '#28a745'}
+                    onChange={(e) => handleManualChange('accentColor', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+
               {/* Info Alert */}
               <div className="alert alert-info">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -268,7 +358,7 @@ function ManualSettingsControl({ userId, onSettingChange }) {
             </div>
 
             <div className="modal-action">
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="btn btn-primary"
                 disabled={isSaving}
