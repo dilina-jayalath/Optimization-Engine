@@ -63,10 +63,24 @@ def choose_action():
         
         last_feedback = context.get('lastFeedback')
         avoid_current = context.get('avoidCurrent', False) or (last_feedback == 'negative')
+        direction = context.get('direction') # 'increase' | 'decrease'
         
-        # Get action space for this parameter
+        # Get action space for this behavior
         action_space = get_action_space(parameter)
         current_value = state.get(parameter)
+        
+        # TYPE FIX: Coerce current_value to match action_space type
+        if action_space and current_value is not None:
+             space_type = type(action_space[0])
+             try:
+                 if space_type == int:
+                     current_value = int(float(current_value))
+                 elif space_type == float:
+                     current_value = float(current_value)
+                 elif space_type == str:
+                     current_value = str(current_value)
+             except:
+                 pass # Keep original if cast fails
         
         # Get or create agent data
         key = f"{user_id}:{parameter}"
@@ -92,23 +106,53 @@ def choose_action():
         # Smart action selection
         is_exploration = random.random() < epsilon
         
+        # Filter actions based on constraints (avoid_current, direction)
+        available_actions = action_space.copy()
+        
+        # 1. Directional Constraint
+        if direction and current_value in action_space:
+             try:
+                 curr_idx = action_space.index(current_value)
+                 print(f"   Note: Directional constraint '{direction}' from index {curr_idx} (val={current_value})")
+                 
+                 if direction == 'increase':
+                     filtered = action_space[curr_idx+1:]
+                 elif direction == 'decrease':
+                     filtered = action_space[:curr_idx]
+                 else:
+                     filtered = []
+                     
+                 if filtered:
+                     available_actions = filtered
+                     print(f"   -> Filtered to {available_actions}")
+                 else:
+                     print(f"   -> Directional constraint failed (no actions left), ignoring.")
+                     
+             except (ValueError, IndexError) as e:
+                 print(f"   Error in directional logic: {e}")
+                 pass
+        
+        # 2. Avoid Current Constraint
+        if avoid_current:
+             available_actions = [a for a in available_actions if a != current_value]
+             
+        # If we filtered everything away, valid fallback (relax constraints)
+        if not available_actions:
+             available_actions = action_space.copy()
+             if avoid_current and len(available_actions) > 1:
+                 available_actions = [a for a in available_actions if a != current_value]
+
         if is_exploration:
-            # Exploration: random but avoid current if negative feedback
-            available_actions = action_space.copy()
-            if avoid_current and current_value in available_actions:
-                available_actions = [a for a in available_actions if a != current_value]
-            
+            # Exploration
             action = random.choice(available_actions) if available_actions else random.choice(action_space)
         else:
-            # Exploitation: choose best Q-value, avoid current if negative
-            if avoid_current:
-                # Filter out current value
-                filtered_q = {k: v for k, v in q_values_dict.items() if k != current_value}
-                if filtered_q:
-                    action = max(filtered_q.items(), key=lambda x: x[1])[0]
-                else:
-                    action = max(q_values_dict.items(), key=lambda x: x[1])[0]
+            # Exploitation: choose best Q-value from AVAILABLE actions
+            filtered_q = {k: v for k, v in q_values_dict.items() if k in available_actions}
+            
+            if filtered_q:
+                action = max(filtered_q.items(), key=lambda x: x[1])[0]
             else:
+                # Fallback to global best if local constraints fail
                 action = max(q_values_dict.items(), key=lambda x: x[1])[0]
         
         # Get Q-values for response
@@ -182,14 +226,25 @@ def feedback():
         agent_data = agents_data[key]
         q_values = agent_data.get('q_values', {})
         
+        
+        # 2026-01-05: Handle unhashable action types (e.g. dicts from implicit feedback)
+        action_key = action
+        if isinstance(action, dict):
+             # Try to extract the scalar value if it's a single-key dict like {'targetSize': 32}
+             if len(action) == 1:
+                 action_key = list(action.values())[0]
+             else:
+                 # Fallback: stringify it
+                 action_key = str(action)
+        
         # Initialize Q-value for this action if not present
-        if action not in q_values:
-            q_values[action] = 0.5
+        if action_key not in q_values:
+            q_values[action_key] = 0.5
         
         # Simple Q-learning update: Q(a) = Q(a) + α[reward - Q(a)]
         learning_rate = 0.5 # Increased for Demo responsiveness
-        old_q = q_values[action]
-        q_values[action] = old_q + learning_rate * (reward - old_q)
+        old_q = q_values[action_key]
+        q_values[action_key] = old_q + learning_rate * (reward - old_q)
         
         # Update agent data
         agent_data['q_values'] = q_values
@@ -203,14 +258,14 @@ def feedback():
         loss = abs(reward - old_q) * 0.1
         
         # Log learning
-        print(f"📊 Updated Q({action}) = {q_values[action]:.3f} (was {old_q:.3f}, reward={reward:.2f})")
+        print(f"📊 Updated Q({action_key}) = {q_values[action_key]:.3f} (was {old_q:.3f}, reward={reward:.2f})")
         
         return jsonify({
             'success': True,
             'loss': float(loss),
             'epsilon': agent_data['epsilon'],
             'steps': agent_data['steps'],
-            'qValue': q_values[action],
+            'qValue': q_values[action_key],
             'stats': {
                 'steps': agent_data['steps'],
                 'epsilon': agent_data['epsilon'],

@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { Feedback, OptimizationEvent } = require('../mongodb/schemas');
 
 const RL_SERVICE_URL = process.env.RL_SERVICE_URL || 'http://localhost:8000';
 
@@ -198,6 +199,166 @@ router.get('/stats/:userId', async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+// NEW: Component-specific feedback (Alt+Click)
+router.post('/component-issue', async (req, res) => {
+  try {
+    const { 
+      userId, 
+      componentId, 
+      componentType, 
+      issue, 
+      severity, 
+      comment, 
+      context: feedbackContext // Renamed to avoid confusion
+    } = req.body;
+
+    console.log(`[RL Feedback] 🐛 Component Issue Reported:`, { userId, componentId, issue });
+
+    // 1. Log the feedback
+    const feedbackEntry = new Feedback({
+      userId,
+      optimization: {
+          parameter: 'component_level', 
+          oldValue: 'unknown',
+          newValue: 'reported_issue',
+          suggestedBy: 'user_manual'
+      },
+      feedback: {
+          type: 'negative',
+          rating: 1, 
+          comment: `[${componentType}] ${issue}: ${comment || ''}`
+      },
+      reward: {
+          value: -1.0,
+          normalized: -1.0
+      },
+      context: {
+          deviceType: feedbackContext?.deviceType || 'unknown',
+          pageUrl: feedbackContext?.pageUrl
+      },
+      metadata: {
+        componentId,
+        componentType,
+        severity,
+        issueType: issue,
+        componentProps: feedbackContext?.componentProps
+      }
+    });
+    await feedbackEntry.save();
+
+    // 2. Penalize the RL model (Implicitly)
+    const currentState = await OptimizationEvent.findOne({ userId }).sort({ timestamp: -1 });
+    const penalty = -0.2 * (severity || 1);
+
+    try {
+        const lastAction = currentState?.details?.value || {};
+        
+        await axios.post(`${RL_SERVICE_URL}/rl/feedback`, {
+            userId,
+            state: {}, 
+            action: lastAction, 
+            reward: penalty,
+            nextState: {} 
+        });
+        console.log(`[RL Feedback] 📉 Model penalized by ${penalty}`);
+    } catch (rlError) {
+        console.error('[RL Feedback] Failed to update RL model:', rlError.message);
+    }
+
+const RLMongoDBService = require('../mongodb/service');
+const dbService = new RLMongoDBService();
+
+    // 3. Get Smart Suggestion to fix the issue
+    let nextSuggestion = null;
+    let suggestionError = null;
+    
+    try {
+        // Map common issues to parameters
+        const issueToParam = {
+            'too_small': 'targetSize',
+            'too_large': 'targetSize', // Added for button/text size
+            'hard_to_read': 'fontSize', 
+            'bad_contrast': 'contrastMode',
+            'line_height': 'lineHeight',
+            'layout': 'elementSpacing',
+            'wrong_color': 'theme' 
+        };
+        
+        const targetParam = issueToParam[issue] || 'theme';
+        
+        // Safe access to current value
+        const currentStyle = feedbackContext?.componentProps?.style || {};
+        const currentProfile = feedbackContext?.currentProfile || {};
+        
+        const currentVal = currentStyle[targetParam] || currentProfile[targetParam === 'fontSize' ? 'font_size' : targetParam === 'targetSize' ? 'target_size' : targetParam];
+
+        console.log(`[RL Feedback] 🧠 Requesting fix for ${targetParam} (current: ${currentVal})`);
+
+        // Prepare RL payload
+        // Ensure state keys match what RL expects (numbers or strings)
+        const rlState = { [targetParam]: currentVal, ...currentProfile };
+
+        const rlResponse = await axios.post(`${RL_SERVICE_URL}/rl/choose-action`, {
+            userId,
+            parameter: targetParam,
+            state: rlState,
+            context: { 
+                reason: `User reported issue: ${issue}`,
+                direction: ({
+                    'too_small': 'increase',
+                    'too_large': 'decrease',
+                    'hard_to_read': 'increase',
+                    'bad_contrast': 'increase' // Assuming this means more contrast
+                })[issue]
+            }
+        });
+
+        if (rlResponse.data && rlResponse.data.success) {
+            nextSuggestion = {
+                parameter: targetParam,
+                currentValue: currentVal,
+                suggestedValue: rlResponse.data.action,
+                confidence: rlResponse.data.qValue,
+                reason: `Fixing ${issue.replace('_', ' ')}`
+            };
+            console.log(`[RL Feedback] 💡 Suggesting fix: ${targetParam} -> ${nextSuggestion.suggestedValue}`);
+
+            // NEW: Persist to Database so it survives refresh!
+            try {
+                // Determine parameter name consistent with user settings schema
+                // e.g. 'fontSize' is usually stored as 'fontSize' in currentSettings, but profile uses 'font_size'
+                // Let's use the exact key dashboard/settings API uses.
+                const settingsUpdate = { [targetParam]: nextSuggestion.suggestedValue };
+                
+                // Use 'rl_optimization' which is a valid enum value in SettingsHistory schema
+                await dbService.updateUserSettings(userId, settingsUpdate, 'rl_optimization');
+                console.log(`[RL Feedback] 💾 Persisted setting to DB:`, settingsUpdate);
+            } catch (dbErr) {
+                 console.error('[RL Feedback] Failed to persist setting:', dbErr.message);
+            }
+        }
+    } catch (suggestError) {
+        console.error('[RL Feedback] Failed to get suggestion:', suggestError.message);
+        suggestionError = suggestError.message;
+        if (suggestError.response) {
+            suggestionError += ` (Status ${suggestError.response.status}: ${JSON.stringify(suggestError.response.data)})`;
+        }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Feedback recorded and model updated',
+      penaltyApplied: penalty,
+      nextSuggestion, 
+      suggestionError
+    });
+
+  } catch (error) {
+    console.error('[RL Feedback] Error processing component issue:', error);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 });
 

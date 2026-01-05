@@ -4,13 +4,12 @@ const axios = require('axios');
 const { Profile } = require('./profiles');
 const { ManualSettings, PreferenceState, User } = require('../mongodb/schemas');
 const { getMappedValue } = require('../config/ladders');
+const { getCachedSession, setCachedSession, invalidateUserCache } = require('../utils/session-cache');
 const router = express.Router();
 
 // Python Personalization Service URL (Week 2 - Thompson Sampling)
 const PERSONALIZATION_SERVICE = process.env.PERSONALIZATION_SERVICE_URL || 'http://localhost:5002';
 
-// In-memory cache for session-sticky personalization (use Redis in production)
-const sessionCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 const mapFeedbackToReward = (feedback) => {
@@ -126,8 +125,7 @@ router.get('/', async (req, res) => {
     }
 
     // Check cache for existing personalization (sticky sessions)
-    const cacheKey = `${userId}_${clientDomain || 'default'}`;
-    const cached = sessionCache.get(cacheKey);
+    const cached = getCachedSession(userId, clientDomain);
     
     if (cached && !forceNew && (Date.now() - cached.timestamp < CACHE_TTL)) {
       console.log(`[Personalization] Returning cached personalization for ${userId}`);
@@ -138,18 +136,51 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Week 3: Fetch accessibility context from profile
-    const profile = await Profile.findOne({ userId }) || await new Profile({ userId }).save();
+    // PRIORITY 2: Check for current settings (RL provided or persisted)
+    // We fetch the user to get their latest stored settings
+    const user = await User.findOne({ userId });
+    
+    if (user && user.currentSettings && Object.keys(user.currentSettings).length > 0) {
+        console.log(`[Personalization] Using stored currentSettings for ${userId}`);
+        
+        // Map currentSettings schema to Personalization API schema
+        // currentSettings uses keys like 'fontSize', 'targetSize' etc.
+        const currentSettings = user.currentSettings;
+        
+        // Ensure manual overrides are merged in if they exist
+        const manualOverrides = user.manualOverrides ? Object.fromEntries(user.manualOverrides) : {};
+        
+        const effectiveSettings = {
+            ...currentSettings,
+            ...manualOverrides
+        };
 
-    const context = {
-      visual_impairment: Number(profile.visual_impairment ?? 0.5),
-      motor_skills: Number(profile.motor_skills ?? 0.5),
-      cognitive_load: Number(profile.cognitive_load ?? 0.5),
-    };
-
-    // Phase 2: Thompson Sampling removed - use /api/trials/propose instead
-    // This legacy endpoint now returns baseline profile for backward compatibility
-    console.log('[Personalization] Thompson Sampling disabled - use /api/trials for Phase 2');
+        const personalizedResponse = {
+            success: true,
+            userId,
+            clientDomain: clientDomain || null,
+            settings: {
+                variant: 'personalized',
+                fontSize: effectiveSettings.fontSize || 'medium',
+                lineHeight: effectiveSettings.lineHeight || 1.5,
+                contrast: effectiveSettings.contrastMode || 'normal', // Note mapping
+                spacing: effectiveSettings.elementSpacing || 'normal', // Note mapping
+                targetSize: effectiveSettings.targetSize || 32,
+                primaryColor: effectiveSettings.primaryColor || '#007bff',
+                secondaryColor: effectiveSettings.secondaryColor || '#6c757d',
+                accentColor: effectiveSettings.accentColor || '#28a745',
+                theme: effectiveSettings.theme || 'light',
+                reducedMotion: effectiveSettings.reducedMotion || false,
+                tooltipAssist: effectiveSettings.tooltipAssist || false,
+                layoutSimplification: effectiveSettings.layoutSimplification || false,
+            },
+            source: 'rl_persistence',
+            confidence: 0.9,
+            timestamp: new Date().toISOString(),
+        };
+        
+        return res.json(personalizedResponse);
+    }
 
     // Fallback to baseline (Week 1 behavior)
     const settings = {
@@ -378,8 +409,7 @@ router.post('/revert', async (req, res) => {
     console.log(`[Personalization] REVERT signal from userId=${userId}, sessionId=${sessionId}, reason=${reason}`);
 
     // Clear cached personalization to force new selection
-    const cacheKey = `${userId}_${req.body.clientDomain || 'default'}`;
-    sessionCache.delete(cacheKey);
+    invalidateUserCache(userId);
     console.log(`[Personalization] Cleared cache for ${userId}`);
 
     // Record revert in profile (Week 3)
@@ -439,13 +469,11 @@ router.delete('/cache/:userId', async (req, res) => {
     const { userId } = req.params;
     const { clientDomain } = req.query;
     
-    const cacheKey = `${userId}_${clientDomain || 'default'}`;
-    const existed = sessionCache.has(cacheKey);
-    sessionCache.delete(cacheKey);
+    invalidateUserCache(userId);
     
     res.json({
       success: true,
-      message: existed ? 'Cache cleared' : 'No cache found',
+      message: 'Cache cleared',
       userId,
     });
   } catch (error) {

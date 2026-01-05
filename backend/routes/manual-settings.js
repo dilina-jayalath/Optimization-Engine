@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { ManualSettings, User } = require('../mongodb/schemas');
 const { broadcastSettingsUpdate } = require('./settings-events');
+const { invalidateUserCache } = require('../utils/session-cache');
 
 /**
  * Manual Settings API
@@ -150,6 +151,8 @@ router.put('/:userId', async (req, res) => {
       tooltipAssist: settings.tooltipAssist,
       layoutSimplification: settings.layoutSimplification,
     }, 'manual');
+
+    invalidateUserCache(userId);
 
     res.json({
       success: true,
@@ -337,6 +340,9 @@ router.post('/apply', async (req, res) => {
 
     // Broadcast via SSE
     broadcastSettingsUpdate(userId, newSettings, 'manual');
+
+    // Invalidate Personalization Cache so next load gets new settings
+    invalidateUserCache(userId);
 
     console.log(`[Manual Settings] ✅ Settings applied and broadcasted for ${userId}`);
 
