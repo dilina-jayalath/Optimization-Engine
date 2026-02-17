@@ -3,7 +3,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { submitFeedback, updateManualSettings } from '../services/api';
 
 function ManualSettingsControl({ userId, onSettingChange }) {
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, isPreviewEnabled, setIsPreviewEnabled } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -118,6 +118,22 @@ function ManualSettingsControl({ userId, onSettingChange }) {
             <p className="text-sm opacity-70 mb-6">
               Your manual changes help train the RL model! 🤖 Each selection teaches the AI your preferences.
             </p>
+
+            {/* Global Preview Toggle */}
+            <div className="form-control mb-6 bg-base-200 p-4 rounded-lg">
+              <label className="label cursor-pointer">
+                <div className="flex flex-col">
+                  <span className="label-text font-bold text-lg">👀 Preview on Dashboard</span>
+                  <span className="label-text-alt text-xs mt-1">If disabled, changes connect to client but won't affect this dashboard</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-success toggle-lg"
+                  checked={isPreviewEnabled}
+                  onChange={(e) => setIsPreviewEnabled(e.target.checked)}
+                />
+              </label>
+            </div>
 
             <div className="space-y-6">
               {/* Font Size */}

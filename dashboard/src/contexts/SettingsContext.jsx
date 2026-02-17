@@ -11,14 +11,18 @@ export function useSettings() {
 }
 
 export function SettingsProvider({ children, userId = 'u_001' }) {
-  const [settings, setSettings] = useState({
+  const DEFAULT_SETTINGS = {
     fontSize: 'medium',
     targetSize: 32,
     lineHeight: 1.5,
     theme: 'light',
     contrastMode: 'normal',
     elementSpacing: 'normal'
-  });
+  };
+
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [frozenSettings, setFrozenSettings] = useState(DEFAULT_SETTINGS);
+  const [isPreviewEnabled, setIsPreviewEnabled] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load user settings from backend on mount
@@ -64,11 +68,16 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
     }
   };
 
-  // Apply settings to DOM whenever they change
+  // Apply settings to DOM whenever they change OR preview mode changes
   useEffect(() => {
-    console.log('🔄 Settings changed, applying to DOM:', settings);
-    applyAllSettings(settings);
-  }, [settings]);
+    console.log('🔄 Settings/Preview changed, applying to DOM');
+    if (isPreviewEnabled) {
+      applyAllSettings(settings);
+    } else {
+      // Use frozen settings when preview is disabled to maintain dashboard appearance
+      applyAllSettings(frozenSettings);
+    }
+  }, [settings, isPreviewEnabled, frozenSettings]);
 
   const applyAllSettings = (newSettings) => {
     console.log('🎨 Applying all settings to website:', newSettings);
@@ -274,8 +283,6 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         ...prev,
         [parameter]: value
       };
-      // Apply settings immediately after state update
-      setTimeout(() => applyAllSettings(updated), 0);
       return updated;
     });
 
@@ -321,7 +328,17 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
       updateMultipleSettings,
       resetSettings,
       reloadSettings: loadUserSettings,
-      isLoaded
+      reloadSettings: loadUserSettings,
+      isLoaded,
+      isLoaded,
+      isPreviewEnabled,
+      setIsPreviewEnabled: (enabled) => {
+        if (!enabled) {
+          console.log('❄️ Freezing settings for dashboard preview off');
+          setFrozenSettings(settings);
+        }
+        setIsPreviewEnabled(enabled);
+      }
     }}>
       {children}
     </SettingsContext.Provider>
