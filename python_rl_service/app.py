@@ -10,8 +10,16 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 CORS(app)
 
+
+from temp_user_detector.service import TempUserDetectorService
+from temp_user_detector.schemas import InteractionBatch
+
 # Simple in-memory storage for testing
 agents_data = {}
+
+# Initialize Temp User Detector
+temp_user_detector = TempUserDetectorService()
+
 
 @app.route('/rl/health', methods=['GET'])
 def health():
@@ -414,7 +422,73 @@ def save_model():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/rl/temp-user/score', methods=['POST'])
+def temp_user_score():
+    """Score a batch of interactions for temp user detection"""
+    try:
+        data = request.json
+        # Convert dictionary to InteractionBatch Pydantic model
+        batch = InteractionBatch(**data)
+        
+        result = temp_user_detector.score_batch(batch)
+        
+        # Serialize result to dict
+        response = {
+            "is_quarantined": result.is_quarantined,
+            "is_rejected": result.is_rejected,
+            "outcome": result.outcome,
+            "anomaly_score": result.anomaly_score,
+            "similarity_score": result.similarity_score,
+            "heuristic_components": result.heuristic_components,
+            "reason": result.reason,
+            "trace_id": result.trace.trace_id
+        }
+        
+        print(f"🕵️‍♂️ Temp User Check: {result.outcome} (Anomaly: {result.anomaly_score:.2f})")
+        
+        return jsonify({
+            'success': True,
+            'result': response
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rl/temp-user/train', methods=['POST'])
+def temp_user_train():
+    """Train temp user detector on synthetic data"""
+    try:
+        count = temp_user_detector.train_from_synth()
+        print(f"🎓 Trained Temp User Detector on {count} synthetic samples")
+        return jsonify({
+            'success': True,
+            'message': f"Trained on {count} samples"
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rl/temp-user/baseline', methods=['POST'])
+def temp_user_update_baseline():
+    """Update user baseline"""
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        features = data.get('features') # list of floats
+        
+        if not user_id or not features:
+             return jsonify({'error': 'userId and features required'}), 400
+             
+        temp_user_detector.update_baseline(user_id, features)
+        
+        return jsonify({'success': True, 'message': 'Baseline updated'})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 # ===== HELPER FUNCTIONS =====
+
 
 def get_action_space(parameter):
     """Get possible actions for a parameter"""
