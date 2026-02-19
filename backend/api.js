@@ -38,10 +38,12 @@ const { router: settingsEventsRouter, broadcastSettingsUpdate } = require('./rou
 const rlFeedbackRouter = require('./routes/rl-feedback');
 const userCategorizationRouter = require('./routes/user-categorization');
 const behaviorRlOptimizationRouter = require('./routes/behavior-rl-optimization');
+const tempUserRouter = require('./routes/temp-user');
 
 // Mount Week 1 routes
 app.use('/api/behavior', behaviorRouter);
 app.use('/api/behavior-rl', behaviorRlOptimizationRouter);
+app.use('/api/temp-user', tempUserRouter);
 app.use('/api/personalization', personalizationRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/feedback', feedbackRouter);

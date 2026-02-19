@@ -33,7 +33,7 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
 
   const getChangedSettings = (current, previous) => {
     if (!previous) return Object.keys(current);
-    
+
     return Object.keys(current).filter(key => {
       return JSON.stringify(current[key]) !== JSON.stringify(previous[key]);
     });
@@ -43,13 +43,13 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
       {history.map((item, index) => {
         const isCurrent = index === currentIndex;
-        const changedSettings = index > 0 
+        const changedSettings = index > 0
           ? getChangedSettings(item.settings, history[index - 1].settings)
           : Object.keys(item.settings);
 
         return (
-          <div 
-            key={item.id} 
+          <div
+            key={item.id}
             className={`card ${isCurrent ? 'bg-primary/10 border-2 border-primary' : 'bg-base-200'} shadow-md hover:shadow-lg transition-all`}
           >
             <div className="card-body p-4">
