@@ -362,4 +362,49 @@ const dbService = new RLMongoDBService();
   }
 });
 
+/**
+ * POST /api/rl-feedback/sync-daily
+ * 
+ * Invoked by the frontend explicitly (e.g. at the end of the day or session)
+ * Pushes the user's customized LocalStorage profile to the Python ML Engine.
+ */
+router.post('/sync-daily', async (req, res) => {
+  try {
+    const { userId, profile } = req.body;
+
+    if (!userId || !profile) {
+      return res.status(400).json({ success: false, error: 'Missing userId or profile' });
+    }
+
+    console.log(`[RL Sync] 🔄 Initiating daily sync to ML engine for user ${userId}`);
+
+    try {
+      // Forward the maintained profile state to the Python RL microservice 
+      const response = await axios.post(`${RL_SERVICE_URL}/rl/sync`, {
+        userId,
+        profile,
+        timestamp: new Date().toISOString()
+      });
+
+      if (response.data && response.data.success) {
+        console.log(`[RL Sync] ✅ Successfully synchronized user profile to ML`);
+      } else {
+         console.warn(`[RL Sync] ⚠️ ML Engine responded but indicated failure or no success flag`);
+      }
+    } catch (mlErr) {
+       console.error(`[RL Sync] ❌ Failed to reach Python ML Engine: ${mlErr.message}`);
+       // We don't fail the request completely if ML is down, but we log the issue
+    }
+
+    res.json({
+      success: true,
+      message: 'Initial daily sync procedure completed'
+    });
+
+  } catch (error) {
+    console.error('[RL Sync] Error during daily sync:', error);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;
