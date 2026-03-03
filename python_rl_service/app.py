@@ -6,16 +6,18 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import traceback
 from datetime import datetime, timezone
+import time
+from flask import Response
 
 app = Flask(__name__)
-CORS(app)
-
+CORS(app, supports_credentials=True)
 
 from temp_user_detector.service import TempUserDetectorService
-from temp_user_detector.schemas import InteractionBatch
 
 # Simple in-memory storage for testing
 agents_data = {}
+user_profiles = {} # Simple in-memory storage for user settings
+
 
 # Initialize Temp User Detector
 temp_user_detector = TempUserDetectorService()
@@ -360,6 +362,214 @@ def suggest():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/rl-feedback/component-issue', methods=['POST'])
+def component_issue_feedback():
+    """
+    Handle explicit manual component-level feedback from the UI
+    """
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        component_id = data.get('componentId')
+        component_type = data.get('componentType')
+        issue = data.get('issue')
+        
+        print(f"🛠️ Component Feedback Received: {user_id} reported '{issue}' on {component_type} ({component_id})")
+        
+        # Determine the mapped parameter and a suggested value based on the issue reported
+        parameter = None
+        suggested_value = None
+        
+        if issue == 'too_small':
+            parameter = 'targetSize'
+            # Suggest a larger target size
+            suggested_value = 48
+        elif issue == 'too_large':
+            parameter = 'targetSize'
+            # Suggest a smaller target size
+            suggested_value = 32
+        elif issue == 'hard_to_read':
+            parameter = 'fontSize'
+            suggested_value = 20 # Mapped to numeric size
+        elif issue == 'bad_contrast':
+            parameter = 'theme'
+            suggested_value = 'dark' # Often dark is higher contrast, or we could set 'high_contrast' mode
+        elif issue == 'line_height':
+            parameter = 'lineHeight'
+            suggested_value = 1.6
+        elif issue == 'wrong_color':
+            parameter = 'theme'
+            suggested_value = 'light'
+        elif issue == 'layout':
+            parameter = 'elementSpacing'
+            suggested_value = 4 # Mapped to compact numeric spacing
+            
+        if parameter and suggested_value:
+             print(f"   -> AI Suggestion: Change {parameter} to {suggested_value}")
+             return jsonify({
+                'success': True,
+                'nextSuggestion': {
+                    'parameter': parameter,
+                    'suggestedValue': suggested_value,
+                    'confidence': 0.85
+                }
+             })
+             
+        # If no specific suggestion, just acknowledge
+        return jsonify({
+            'success': True,
+            'message': 'Feedback recorded, but no immediate UI change mapped.'
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rl-feedback/submit', methods=['POST'])
+def rl_feedback_submit():
+    """
+    Handle ML Feedback Prompt submissions (Better/Same/Worse)
+    """
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        setting_key = data.get('settingKey')
+        feedback = data.get('feedback')
+        
+        print(f"🎯 ML Feedback Received: {user_id} rated {setting_key} as '{feedback}'")
+        
+        # Map qualitative feedback to quantitative reward
+        reward = 0
+        if feedback == 'positive':
+            reward = 1.0
+        elif feedback == 'negative':
+            reward = -1.0
+            
+        # Optional: could call feedback() internal logic here to update Q-values.
+        # For the mock server, returning success is enough to fix the UI error.
+        
+        return jsonify({
+            'success': True,
+            'reward': reward,
+            'message': 'RL feedback successfully processed.'
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/manual-settings/apply', methods=['POST'])
+def manual_settings_apply():
+    """
+    Handle Saving of Settings when user clicks "👍 Better" on the ML Prompt
+    """
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        settings = data.get('settings', {})
+        
+        print(f"💾 Saving manual settings for {user_id}: {settings}")
+        
+        if user_id not in user_profiles:
+             user_profiles[user_id] = {}
+             
+        # Merge new settings
+        user_profiles[user_id].update(settings)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Settings persisted.'
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/users/<user_id>/profile', methods=['GET'])
+def get_user_profile(user_id):
+    """
+    Fetch the saved profile for a user so settings persist across page reloads.
+    """
+    try:
+        # Default starting profile
+        profile = {
+          "font_size": 17,
+          "line_height": 1.6,
+          "contrast_mode": "normal",
+          "primary_color": "#1a73e8",
+          "primary_color_content": "#ffffff",
+          "secondary_color": "#1a73e8",
+          "secondary_color_content": "#ffffff",
+          "accent_color": "#e37400",
+          "accent_color_content": "#ffffff",
+          "theme": "light",
+          "element_spacing_x": 7,
+          "element_spacing_y": 4,
+          "element_padding_x": 8,
+          "element_padding_y": 8,
+          "reduced_motion": False,
+          "target_size": 32,
+          "tooltip_assist": True,
+          "layout_simplification": True
+        }
+        
+        # Overlay any saved custom settings
+        saved_settings = user_profiles.get(user_id, {})
+        
+        # Map frontend camelCase to backend snake_case if necessary
+        mapping = {
+            'fontSize': 'font_size',
+            'lineHeight': 'line_height',
+            'targetSize': 'target_size',
+            'contrastMode': 'contrast_mode',
+            'elementSpacing': 'element_spacing_y', # Simple map for demo
+        }
+        
+        for k, v in saved_settings.items():
+            db_key = mapping.get(k, k)
+            profile[db_key] = v
+            
+        return jsonify({
+            'success': True,
+            'profile': {
+                'user_id': user_id,
+                'metadata': {
+                    'origin': 'user',
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                    'confidence_overall': 0.8,
+                    'version': 1
+                },
+                'profile': profile
+            },
+            'diff': {
+                'changed': list(saved_settings.keys()),
+                'new': profile,
+                'old': profile
+            }
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/users/<user_id>/reset', methods=['POST'])
+def reset_user_profile(user_id):
+    """
+    Clear all saved manual settings for a user, reverting them to defaults.
+    """
+    try:
+        print(f"🗑️ Resetting profile for user {user_id}")
+        if user_id in user_profiles:
+            # Clear their specific settings
+            user_profiles[user_id] = {}
+            
+            # Also reset their agent learning data to baseline
+            for key in list(agents_data.keys()):
+                if key.startswith(f"{user_id}:"):
+                    del agents_data[key]
+                    
+        return jsonify({'success': True, 'message': 'User profile reset.'})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/rl/stats', methods=['GET'])
 def stats():
     """Get stats"""
@@ -487,18 +697,109 @@ def temp_user_update_baseline():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/temp-user/check', methods=['POST'])
+def temp_user_check():
+    """
+    Check if the user is exhibiting temp-user/bot behavior based on metrics
+    from the React BehaviorTracker by calling the TempUserDetector ML service.
+    """
+    try:
+        from temp_user_detector.schemas import InteractionBatch, PageContext, EventsAgg
+        import uuid
+        
+        data = request.json
+        user_id = data.get('userId', 'unknown')
+        metrics = data.get('metrics', {})
+        
+        # Map frontend metrics to backend EventsAgg
+        events_agg = EventsAgg(
+            click_count=metrics.get('clickCount', 0),
+            misclick_rate=min(1.0, float(metrics.get('misclickCount', 0)) / max(1.0, float(metrics.get('clickCount', 1)))),
+            avg_click_interval_ms=float(metrics.get('avgTimeToClick', 0.0)),
+            # Use 'duration' if available, otherwise 0
+            avg_dwell_ms=float(metrics.get('duration', 0.0)),
+            rage_clicks=metrics.get('rageClickCount', 0),
+            zoom_events=metrics.get('zoomEventCount', 0),
+            scroll_speed_px_s=0.0
+        )
+        
+        batch = InteractionBatch(
+            user_id=user_id,
+            batch_id=f"batch_{uuid.uuid4().hex[:8]}",
+            captured_at=datetime.now(timezone.utc).isoformat(),
+            page_context=PageContext(domain="novacart", route="/", app_type="web"),
+            events_agg=events_agg
+        )
+        
+        result = temp_user_detector.score_batch(batch)
+        
+        # If the outcome is quarantined or rejected, flag as temp user
+        is_temp_user = result.is_quarantined or result.is_rejected
+        reason = result.reason if is_temp_user else ""
+        
+        print(f"🛡️ ML Temp User Check for {user_id}: IsTemp={is_temp_user} ({result.outcome}: {result.reason}) AnomalyScore: {result.anomaly_score:.2f}")
+        
+        return jsonify({
+            'success': True,
+            'isTempUser': is_temp_user,
+            'reason': reason
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/settings-events/<user_id>')
+def settings_events(user_id):
+    """
+    Server-Sent Events (SSE) endpoint for real-time settings sync.
+    """
+    def generate():
+        # Send initial connected event
+        yield f"data: {{\"type\": \"connected\", \"userId\": \"{user_id}\"}}\n\n"
+        
+        # Keep connection alive with periodic pings (if needed)
+        # We can yield actual updates here if the ML engine pushes them asynchronously
+        while True:
+            time.sleep(30)
+            yield f"data: {{\"type\": \"ping\", \"timestamp\": \"{datetime.now(timezone.utc).isoformat()}\"}}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    })
+
+@app.route('/behavior', methods=['POST', 'OPTIONS'])
+def behavior_tracking():
+    """
+    Endpoint for receiving behavioral telemetry from BehaviorTracker.ts
+    (e.g., cursor_movement, clicks, scroll_depth).
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+        
+    try:
+        data = request.json
+        # In a real app, this would be pushed to a message queue or time-series DB
+        # print(f"📊 Received behavior batch from {data.get('user_id', 'unknown')} with {len(data.get('events', []))} events")
+        return jsonify({'success': True, 'status': 'received'})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 # ===== HELPER FUNCTIONS =====
 
 
 def get_action_space(parameter):
     """Get possible actions for a parameter"""
     action_spaces = {
-        'fontSize': ['small', 'medium', 'large', 'x-large'],
+        'fontSize': [14, 16, 17, 18, 20, 24, 28],
         'lineHeight': [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
         'theme': ['light', 'dark', 'auto'],
         'contrastMode': ['normal', 'high'],
-        'elementSpacing': ['compact', 'normal', 'wide'],
-        'targetSize': [24, 28, 32, 36, 40, 44, 48, 52, 60, 72],
+        'elementSpacing': [0, 4, 8, 12, 16, 20, 24, 32],
+        'targetSize': [24, 28, 32, 36, 40, 44, 48, 52, 60, 64],
         'reducedMotion': [False, True],
         'tooltipAssist': [False, True],
         'layoutSimplification': [False, True]
