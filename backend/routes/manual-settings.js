@@ -335,7 +335,7 @@ router.post('/apply', async (req, res) => {
         { $set: userUpdateData },
         { upsert: true }
       );
-      console.log(`[Manual Settings] ✅ User.currentSettings updated for ${userId}`, userUpdateData);
+      console.log(`[Manual Settings]  User.currentSettings updated for ${userId}`, userUpdateData);
     }
 
     // Broadcast via SSE
@@ -344,7 +344,7 @@ router.post('/apply', async (req, res) => {
     // Invalidate Personalization Cache so next load gets new settings
     invalidateUserCache(userId);
 
-    console.log(`[Manual Settings] ✅ Settings applied and broadcasted for ${userId}`);
+    console.log(`[Manual Settings]  Settings applied and broadcasted for ${userId}`);
 
     res.json({
       success: true,

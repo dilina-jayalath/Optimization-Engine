@@ -42,14 +42,14 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
         }
       };
 
-      console.log('📤 Submitting feedback:', feedbackData);
+      console.log(' Submitting feedback:', feedbackData);
       const result = await submitFeedback(userId, feedbackData);
-      console.log('📥 Received result:', result);
+      console.log(' Received result:', result);
 
       // Auto-apply RL suggestion if available
       if (result.data?.nextSuggestion) {
         const suggestion = result.data.nextSuggestion;
-        console.log('✨ Auto-applying RL suggestion:', suggestion.suggestedValue);
+        console.log(' Auto-applying RL suggestion:', suggestion.suggestedValue);
 
         // First update local settings for immediate feedback
         updateSetting(formData.parameter, suggestion.suggestedValue);
@@ -57,7 +57,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
         // Then reload from backend to ensure we have the latest RL suggestions
         setTimeout(async () => {
           await reloadSettings();
-          console.log('🔄 Reloaded settings from backend');
+          console.log(' Reloaded settings from backend');
         }, 500);
 
         // Show success message with what was changed
@@ -130,14 +130,14 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
         onClick={() => setIsOpen(true)}
         className="btn btn-primary gap-2 shadow-lg"
       >
-        💬 Give Feedback
+         Give Feedback
       </button>
 
       {isOpen && (
         <div className="modal modal-open">
           <div className="modal-box max-w-2xl">
             <h3 className="font-bold text-2xl mb-4 flex items-center gap-2">
-              💬 Share Your Feedback
+               Share Your Feedback
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -155,16 +155,16 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                       className={`text-5xl transition-transform hover:scale-110 ${star <= formData.rating ? 'opacity-100' : 'opacity-30'
                         }`}
                     >
-                      {star <= formData.rating ? '⭐' : '☆'}
+                      {star <= formData.rating ? '' : ''}
                     </button>
                   ))}
                 </div>
                 <div className="text-center text-sm opacity-70">
-                  {formData.rating === 5 && '😊 Excellent!'}
-                  {formData.rating === 4 && '😃 Good!'}
-                  {formData.rating === 3 && '😐 Okay'}
-                  {formData.rating === 2 && '😕 Could be better'}
-                  {formData.rating === 1 && '😞 Needs improvement'}
+                  {formData.rating === 5 && ' Excellent!'}
+                  {formData.rating === 4 && ' Good!'}
+                  {formData.rating === 3 && ' Okay'}
+                  {formData.rating === 2 && ' Could be better'}
+                  {formData.rating === 1 && ' Needs improvement'}
                 </div>
               </div>
 
@@ -179,21 +179,21 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                     className={`btn join-item flex-1 ${formData.feedbackType === 'positive' ? 'btn-success' : 'btn-outline'}`}
                     onClick={() => setFormData(prev => ({ ...prev, feedbackType: 'positive' }))}
                   >
-                    😊 Positive
+                     Positive
                   </button>
                   <button
                     type="button"
                     className={`btn join-item flex-1 ${formData.feedbackType === 'neutral' ? 'btn-warning' : 'btn-outline'}`}
                     onClick={() => setFormData(prev => ({ ...prev, feedbackType: 'neutral' }))}
                   >
-                    😐 Neutral
+                     Neutral
                   </button>
                   <button
                     type="button"
                     className={`btn join-item flex-1 ${formData.feedbackType === 'negative' ? 'btn-error' : 'btn-outline'}`}
                     onClick={() => setFormData(prev => ({ ...prev, feedbackType: 'negative' }))}
                   >
-                    😞 Negative
+                     Negative
                   </button>
                 </div>
               </div>
@@ -208,11 +208,11 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                   value={formData.parameter}
                   onChange={(e) => setFormData(prev => ({ ...prev, parameter: e.target.value, currentValue: null }))}
                 >
-                  <option value="targetSize">🎯 Button Size</option>
-                  <option value="fontSize">🔤 Font Size</option>
-                  <option value="lineHeight">📏 Line Height</option>
-                  <option value="theme">🎨 Theme (Light/Dark)</option>
-                  <option value="contrastMode">🔆 Contrast Mode</option>
+                  <option value="targetSize"> Button Size</option>
+                  <option value="fontSize"> Font Size</option>
+                  <option value="lineHeight"> Line Height</option>
+                  <option value="theme"> Theme (Light/Dark)</option>
+                  <option value="contrastMode"> Contrast Mode</option>
                   <option value="elementSpacing">↔️ Element Spacing</option>
                 </select>
               </div>
@@ -226,7 +226,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                   <div className="flex-1">
                     <span>Current {formData.parameter}: <strong className="text-lg">{formData.currentValue || getCurrentValue(formData.parameter)}</strong></span>
                     <div className="text-xs mt-1 opacity-70">
-                      ✨ This value is applied to the entire dashboard
+                       This value is applied to the entire dashboard
                     </div>
                   </div>
                 </div>

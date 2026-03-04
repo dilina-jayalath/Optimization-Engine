@@ -10,9 +10,10 @@ import time
 from flask import Response
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(app)
 
 from temp_user_detector.service import TempUserDetectorService
+from temp_user_detector.schemas import InteractionBatch
 
 # Simple in-memory storage for testing
 agents_data = {}
@@ -106,10 +107,11 @@ def choose_action():
         epsilon = agent_data.get('epsilon', 0.2)
         q_values_dict = agent_data.get('q_values', {})
         
-        # Initialize Q-values if not present
-        if not q_values_dict:
-            q_values_dict = {action: 0.5 for action in action_space}
-            agent_data['q_values'] = q_values_dict
+        # Initialize Q-values if not present or incomplete
+        for a in action_space:
+            if a not in q_values_dict:
+                q_values_dict[a] = 0.5
+        agent_data['q_values'] = q_values_dict
         
         import random
         
@@ -163,7 +165,8 @@ def choose_action():
                 action = max(filtered_q.items(), key=lambda x: x[1])[0]
             else:
                 # Fallback to global best if local constraints fail
-                action = max(q_values_dict.items(), key=lambda x: x[1])[0]
+                valid_q = {k: v for k, v in q_values_dict.items() if k in action_space}
+                action = max(valid_q.items(), key=lambda x: x[1])[0] if valid_q else action_space[0]
         
         # Get Q-values for response
         q_values_list = [q_values_dict.get(a, 0.5) for a in action_space]
@@ -390,7 +393,7 @@ def component_issue_feedback():
             suggested_value = 32
         elif issue == 'hard_to_read':
             parameter = 'fontSize'
-            suggested_value = 20 # Mapped to numeric size
+            suggested_value = 'large'
         elif issue == 'bad_contrast':
             parameter = 'theme'
             suggested_value = 'dark' # Often dark is higher contrast, or we could set 'high_contrast' mode
@@ -402,7 +405,7 @@ def component_issue_feedback():
             suggested_value = 'light'
         elif issue == 'layout':
             parameter = 'elementSpacing'
-            suggested_value = 4 # Mapped to compact numeric spacing
+            suggested_value = 'compact'
             
         if parameter and suggested_value:
              print(f"   -> AI Suggestion: Change {parameter} to {suggested_value}")
@@ -549,27 +552,6 @@ def get_user_profile(user_id):
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/users/<user_id>/reset', methods=['POST'])
-def reset_user_profile(user_id):
-    """
-    Clear all saved manual settings for a user, reverting them to defaults.
-    """
-    try:
-        print(f"🗑️ Resetting profile for user {user_id}")
-        if user_id in user_profiles:
-            # Clear their specific settings
-            user_profiles[user_id] = {}
-            
-            # Also reset their agent learning data to baseline
-            for key in list(agents_data.keys()):
-                if key.startswith(f"{user_id}:"):
-                    del agents_data[key]
-                    
-        return jsonify({'success': True, 'message': 'User profile reset.'})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/rl/stats', methods=['GET'])
 def stats():
     """Get stats"""
@@ -697,58 +679,6 @@ def temp_user_update_baseline():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/temp-user/check', methods=['POST'])
-def temp_user_check():
-    """
-    Check if the user is exhibiting temp-user/bot behavior based on metrics
-    from the React BehaviorTracker by calling the TempUserDetector ML service.
-    """
-    try:
-        from temp_user_detector.schemas import InteractionBatch, PageContext, EventsAgg
-        import uuid
-        
-        data = request.json
-        user_id = data.get('userId', 'unknown')
-        metrics = data.get('metrics', {})
-        
-        # Map frontend metrics to backend EventsAgg
-        events_agg = EventsAgg(
-            click_count=metrics.get('clickCount', 0),
-            misclick_rate=min(1.0, float(metrics.get('misclickCount', 0)) / max(1.0, float(metrics.get('clickCount', 1)))),
-            avg_click_interval_ms=float(metrics.get('avgTimeToClick', 0.0)),
-            # Use 'duration' if available, otherwise 0
-            avg_dwell_ms=float(metrics.get('duration', 0.0)),
-            rage_clicks=metrics.get('rageClickCount', 0),
-            zoom_events=metrics.get('zoomEventCount', 0),
-            scroll_speed_px_s=0.0
-        )
-        
-        batch = InteractionBatch(
-            user_id=user_id,
-            batch_id=f"batch_{uuid.uuid4().hex[:8]}",
-            captured_at=datetime.now(timezone.utc).isoformat(),
-            page_context=PageContext(domain="novacart", route="/", app_type="web"),
-            events_agg=events_agg
-        )
-        
-        result = temp_user_detector.score_batch(batch)
-        
-        # If the outcome is quarantined or rejected, flag as temp user
-        is_temp_user = result.is_quarantined or result.is_rejected
-        reason = result.reason if is_temp_user else ""
-        
-        print(f"🛡️ ML Temp User Check for {user_id}: IsTemp={is_temp_user} ({result.outcome}: {result.reason}) AnomalyScore: {result.anomaly_score:.2f}")
-        
-        return jsonify({
-            'success': True,
-            'isTempUser': is_temp_user,
-            'reason': reason
-        })
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
 @app.route('/settings-events/<user_id>')
 def settings_events(user_id):
     """
@@ -770,36 +700,18 @@ def settings_events(user_id):
         'X-Accel-Buffering': 'no'
     })
 
-@app.route('/behavior', methods=['POST', 'OPTIONS'])
-def behavior_tracking():
-    """
-    Endpoint for receiving behavioral telemetry from BehaviorTracker.ts
-    (e.g., cursor_movement, clicks, scroll_depth).
-    """
-    if request.method == 'OPTIONS':
-        return jsonify({'success': True}), 200
-        
-    try:
-        data = request.json
-        # In a real app, this would be pushed to a message queue or time-series DB
-        # print(f"📊 Received behavior batch from {data.get('user_id', 'unknown')} with {len(data.get('events', []))} events")
-        return jsonify({'success': True, 'status': 'received'})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
 # ===== HELPER FUNCTIONS =====
 
 
 def get_action_space(parameter):
     """Get possible actions for a parameter"""
     action_spaces = {
-        'fontSize': [14, 16, 17, 18, 20, 24, 28],
+        'fontSize': ['small', 'medium', 'large', 'x-large'],
         'lineHeight': [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
         'theme': ['light', 'dark', 'auto'],
         'contrastMode': ['normal', 'high'],
-        'elementSpacing': [0, 4, 8, 12, 16, 20, 24, 32],
-        'targetSize': [24, 28, 32, 36, 40, 44, 48, 52, 60, 64],
+        'elementSpacing': ['compact', 'normal', 'wide'],
+        'targetSize': [24, 28, 32, 36, 40, 44, 48, 52, 60, 72],
         'reducedMotion': [False, True],
         'tooltipAssist': [False, True],
         'layoutSimplification': [False, True]

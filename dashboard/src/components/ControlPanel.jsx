@@ -16,7 +16,7 @@ function ControlPanel({
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              🎮 Controls
+               Controls
             </h3>
             <div className="flex flex-wrap gap-2">
               <button
@@ -40,21 +40,21 @@ function ControlPanel({
                 onClick={onExport}
                 title="Export history as JSON"
               >
-                📥 Export
+                 Export
               </button>
               <button
                 className="btn btn-error btn-sm"
                 onClick={onClear}
                 title="Clear all history"
               >
-                🗑️ Clear History
+                ️ Clear History
               </button>
             </div>
           </div>
 
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              🔍 Filter
+               Filter
             </h3>
             <div className="join">
               <button
@@ -67,19 +67,19 @@ function ControlPanel({
                 className={`btn btn-sm join-item ${filterType === 'ml' ? 'btn-active' : 'btn-ghost'}`}
                 onClick={() => onFilterChange('ml')}
               >
-                🤖 ML
+                 ML
               </button>
               <button
                 className={`btn btn-sm join-item ${filterType === 'manual' ? 'btn-active' : 'btn-ghost'}`}
                 onClick={() => onFilterChange('manual')}
               >
-                ✋ Manual
+                 Manual
               </button>
               <button
                 className={`btn btn-sm join-item ${filterType === 'system' ? 'btn-active' : 'btn-ghost'}`}
                 onClick={() => onFilterChange('system')}
               >
-                ⚙️ System
+                ️ System
               </button>
             </div>
           </div>

@@ -37,9 +37,9 @@ async function runTest() {
         console.log("Next Suggestion:", data.nextSuggestion);
 
         if (data.nextSuggestion && data.nextSuggestion.suggestedValue !== currentValue) {
-            console.log("✅ FAILSAFE: System correctly suggested a change.");
+            console.log(" FAILSAFE: System correctly suggested a change.");
         } else {
-            console.log("❌ ERROR: System did NOT suggest a change or suggested the same value.");
+            console.log(" ERROR: System did NOT suggest a change or suggested the same value.");
         }
 
     } catch (error) {

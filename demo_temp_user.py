@@ -66,10 +66,10 @@ def analyze_result(result):
     
     if outcome == 'keep':
         color = GREEN
-        icon = "✅"
+        icon = ""
     else:
         color = RED
-        icon = "🚫"
+        icon = ""
         
     print(f"\n{icon} Result: {color}{outcome.upper()}{RESET}")
     print(f"   Anomaly Score: {color}{score:.2f}{RESET} (Thresholds: Quarantine=0.55, Reject=0.75)")
@@ -104,7 +104,7 @@ def run_demo():
     print("Simulating a user who is comfortable, reads content, and clicks accurately.")
     
     normal_batch = generate_interaction("normal")
-    print(f"\n📊 INPUT METRICS:")
+    print(f"\n INPUT METRICS:")
     print(f"   - Misclick Rate: {normal_batch['events_agg']['misclick_rate']*100}%")
     print(f"   - Avg Dwell Time: {normal_batch['events_agg']['avg_dwell_ms']}ms")
     print(f"   - Rage Clicks: {normal_batch['events_agg']['rage_clicks']}")
@@ -126,7 +126,7 @@ def run_demo():
     
     chaotic_batch = generate_interaction("chaotic")
     
-    print(f"\n📊 INPUT METRICS:")
+    print(f"\n INPUT METRICS:")
     print(f"   - Misclick Rate: {chaotic_batch['events_agg']['misclick_rate']*100}% (High!)")
     print(f"   - Avg Dwell Time: {chaotic_batch['events_agg']['avg_dwell_ms']}ms (Too fast!)")
     print(f"   - Rage Clicks: {chaotic_batch['events_agg']['rage_clicks']} (Frustrated!)")

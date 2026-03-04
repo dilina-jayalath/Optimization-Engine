@@ -24,7 +24,7 @@ const dbService = new RLMongoDBService();
 const PYTHON_RL_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 // Import Week 1 routes
@@ -511,7 +511,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       state = req.body.state;
     }
     
-    console.log('📥 Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
+    console.log(' Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
     
     // Calculate enhanced reward based on feedback
     const reward = calculateEnhancedReward(feedback, context);
@@ -561,12 +561,12 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       }, { timeout: 5000 });
       
       rlTrainingResult = dqnResponse.data;
-      console.log('🧠 DQN Training:', { loss: rlTrainingResult.loss, qValue: rlTrainingResult.qValue });
+      console.log(' DQN Training:', { loss: rlTrainingResult.loss, qValue: rlTrainingResult.qValue });
     } catch (dqnError) {
       console.error('DQN service error (non-blocking):', dqnError.message);
     }
     
-    // 🎯 RL PREDICTS NEXT VALUE (KEY FEATURE)
+    //  RL PREDICTS NEXT VALUE (KEY FEATURE)
     const nextSuggestion = await getNextSuggestion(
       userId,
       parameter,
@@ -574,7 +574,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       feedback.type
     );
     
-    console.log('💡 RL Suggested:', nextSuggestion?.suggestedValue);
+    console.log(' RL Suggested:', nextSuggestion?.suggestedValue);
     
     // Auto-apply RL suggestion to user settings
     let updatedSettings = null;
@@ -594,7 +594,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
         return user.save();
       });
       
-      console.log(`✅ Auto-applied RL suggestion: ${parameter} = ${nextSuggestion.suggestedValue}`);
+      console.log(` Auto-applied RL suggestion: ${parameter} = ${nextSuggestion.suggestedValue}`);
     }
     
     // Log event
@@ -614,7 +614,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
         currentValue: currentValue,
         updatedSettings: updatedSettings,
         
-        // 🎯 RL-PREDICTED Next suggestion
+        //  RL-PREDICTED Next suggestion
         nextSuggestion: nextSuggestion ? {
           parameter: nextSuggestion.parameter,
           currentValue: nextSuggestion.currentValue,
@@ -1310,17 +1310,17 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/optimi
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ Connected to MongoDB');
-    console.log(`📊 Database: ${MONGODB_URI.split('/').pop()}`);
+    console.log(' Connected to MongoDB');
+    console.log(` Database: ${MONGODB_URI.split('/').pop()}`);
     app.listen(PORT, () => {
-      console.log(`🚀 API server running on http://localhost:${PORT}`);
-      console.log(`📱 Dashboard: http://localhost:${PORT}/dashboard`);
-      console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(` API server running on http://localhost:${PORT}`);
+      console.log(` Dashboard: http://localhost:${PORT}/dashboard`);
+      console.log(` Health check: http://localhost:${PORT}/api/health`);
     });
   })
   .catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    console.error('💡 Make sure MongoDB is running and MONGODB_URI is correct');
+    console.error(' MongoDB connection error:', err);
+    console.error(' Make sure MongoDB is running and MONGODB_URI is correct');
     process.exit(1);
   });
 

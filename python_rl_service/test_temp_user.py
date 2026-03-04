@@ -78,10 +78,10 @@ def test_score_chaotic():
     print(json.dumps(response.json(), indent=2))
 
 if __name__ == "__main__":
-    print("🧪 Testing Temp User Detection...")
+    print(" Testing Temp User Detection...")
     try:
         test_train()
         test_score_normal()
         test_score_chaotic()
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")

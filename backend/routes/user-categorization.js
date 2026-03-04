@@ -150,7 +150,7 @@ router.post('/analyze', async (req, res) => {
   try {
     const { userId, feedbackHistory, currentSettings } = req.body;
 
-    console.log(`\n🔍 [USER CATEGORIZATION] Analyzing user: ${userId}`);
+    console.log(`\n [USER CATEGORIZATION] Analyzing user: ${userId}`);
 
     // Analyze feedback history to determine preferences
     const behaviorData = {
@@ -196,7 +196,7 @@ router.post('/analyze', async (req, res) => {
     const category = analyzeUserCategory(behaviorData);
     const categoryInfo = WCAG_CATEGORIES[category];
 
-    console.log(`✅ [USER CATEGORIZATION] User categorized as: ${categoryInfo.name}`);
+    console.log(` [USER CATEGORIZATION] User categorized as: ${categoryInfo.name}`);
     console.log(`   WCAG Level: ${categoryInfo.wcagLevel}`);
     console.log(`   Needs: ${categoryInfo.needs.join(', ')}`);
 
@@ -215,7 +215,7 @@ router.post('/analyze', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [USER CATEGORIZATION] Error:', error.message);
+    console.error(' [USER CATEGORIZATION] Error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -242,7 +242,7 @@ router.post('/suggest', async (req, res) => {
     const recommended = categoryInfo.settings;
     const priorities = categoryInfo.priority;
 
-    console.log(`\n💡 [USER CATEGORIZATION] Generating suggestions for ${categoryInfo.name}`);
+    console.log(`\n [USER CATEGORIZATION] Generating suggestions for ${categoryInfo.name}`);
 
     // Find next setting to improve based on priority
     let suggestionParameter = null;
@@ -279,7 +279,7 @@ router.post('/suggest', async (req, res) => {
       });
     }
 
-    console.log(`✅ [USER CATEGORIZATION] Suggesting: ${suggestionParameter} = ${suggestionValue}`);
+    console.log(` [USER CATEGORIZATION] Suggesting: ${suggestionParameter} = ${suggestionValue}`);
     console.log(`   Reason: WCAG ${categoryInfo.wcagLevel} for ${categoryInfo.name}`);
 
     res.json({
@@ -299,7 +299,7 @@ router.post('/suggest', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [USER CATEGORIZATION] Error:', error.message);
+    console.error(' [USER CATEGORIZATION] Error:', error.message);
     res.status(500).json({
       success: false,
       error: error.message

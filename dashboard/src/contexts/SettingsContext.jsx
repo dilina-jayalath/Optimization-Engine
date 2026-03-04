@@ -32,7 +32,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
 
   // Apply initial settings on mount
   useEffect(() => {
-    console.log('🚀 Initial mount - applying default settings');
+    console.log(' Initial mount - applying default settings');
     applyAllSettings(settings);
   }, []);
 
@@ -52,14 +52,14 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
           ...rlSettings
         };
 
-        console.log('📥 Backend settings:', { baseSettings, rlSettings, mergedSettings });
+        console.log(' Backend settings:', { baseSettings, rlSettings, mergedSettings });
 
         setSettings(prev => ({
           ...prev,
           ...mergedSettings
         }));
 
-        console.log('✅ Loaded and merged user settings from backend');
+        console.log(' Loaded and merged user settings from backend');
       }
       setIsLoaded(true);
     } catch (error) {
@@ -70,7 +70,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
 
   // Apply settings to DOM whenever they change OR preview mode changes
   useEffect(() => {
-    console.log('🔄 Settings/Preview changed, applying to DOM');
+    console.log(' Settings/Preview changed, applying to DOM');
     if (isPreviewEnabled) {
       applyAllSettings(settings);
     } else {
@@ -80,11 +80,11 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
   }, [settings, isPreviewEnabled, frozenSettings]);
 
   const applyAllSettings = (newSettings) => {
-    console.log('🎨 Applying all settings to website:', newSettings);
+    console.log(' Applying all settings to website:', newSettings);
 
     // Ensure DOM is ready
     if (!document.body) {
-      console.warn('⚠️ DOM not ready, skipping settings application');
+      console.warn('️ DOM not ready, skipping settings application');
       return;
     }
 
@@ -111,7 +111,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(`✅ Applied fontSize: ${size}`);
+      console.log(` Applied fontSize: ${size}`);
     }
 
     // Target/Button Size
@@ -130,7 +130,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(`✅ Applied targetSize: ${size}px`);
+      console.log(` Applied targetSize: ${size}px`);
     }
 
     // Line Height
@@ -148,7 +148,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(`✅ Applied lineHeight: ${lineHeight}`);
+      console.log(` Applied lineHeight: ${lineHeight}`);
     }
 
     // Theme - DaisyUI requires 'data-theme' on html element
@@ -157,7 +157,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
       html.setAttribute('data-theme', newSettings.theme);
       // Force DaisyUI theme refresh
       html.className = html.className; // Trigger re-render
-      console.log(`✅ Applied theme: ${newSettings.theme}`);
+      console.log(` Applied theme: ${newSettings.theme}`);
     }
 
     // Contrast Mode
@@ -177,7 +177,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         `;
         document.head.appendChild(style);
       }
-      console.log(`✅ Applied contrastMode: ${newSettings.contrastMode}`);
+      console.log(` Applied contrastMode: ${newSettings.contrastMode}`);
     }
 
     // Element Spacing
@@ -200,21 +200,21 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(`✅ Applied elementSpacing: ${spacing}`);
+      console.log(` Applied elementSpacing: ${spacing}`);
     }
 
     // Branding Colors
     if (newSettings.primaryColor) {
       document.documentElement.style.setProperty('--p', hexToHsl(newSettings.primaryColor));
-      console.log(`✅ Applied primaryColor: ${newSettings.primaryColor}`);
+      console.log(` Applied primaryColor: ${newSettings.primaryColor}`);
     }
     if (newSettings.secondaryColor) {
       document.documentElement.style.setProperty('--s', hexToHsl(newSettings.secondaryColor));
-      console.log(`✅ Applied secondaryColor: ${newSettings.secondaryColor}`);
+      console.log(` Applied secondaryColor: ${newSettings.secondaryColor}`);
     }
     if (newSettings.accentColor) {
       document.documentElement.style.setProperty('--a', hexToHsl(newSettings.accentColor));
-      console.log(`✅ Applied accentColor: ${newSettings.accentColor}`);
+      console.log(` Applied accentColor: ${newSettings.accentColor}`);
     }
 
     // Reduced Motion
@@ -233,13 +233,13 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log('✅ Applied reducedMotion: true');
+      console.log(' Applied reducedMotion: true');
     } else {
       const oldStyle = document.getElementById('rl-motion-override');
       if (oldStyle) oldStyle.remove();
     }
 
-    console.log('✅ All settings applied successfully');
+    console.log(' All settings applied successfully');
   };
 
   // Helper to convert Hex to HSL for DaisyUI
@@ -275,7 +275,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
   };
 
   const updateSetting = (parameter, value) => {
-    console.log(`✨ Updating ${parameter} to ${value}`);
+    console.log(` Updating ${parameter} to ${value}`);
 
     // Update state first
     setSettings(prev => {
@@ -295,7 +295,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
   };
 
   const updateMultipleSettings = (newSettings) => {
-    console.log('✨ Updating multiple settings:', newSettings);
+    console.log(' Updating multiple settings:', newSettings);
 
     setSettings(prev => ({
       ...prev,
@@ -334,7 +334,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
       isPreviewEnabled,
       setIsPreviewEnabled: (enabled) => {
         if (!enabled) {
-          console.log('❄️ Freezing settings for dashboard preview off');
+          console.log('️ Freezing settings for dashboard preview off');
           setFrozenSettings(settings);
         }
         setIsPreviewEnabled(enabled);

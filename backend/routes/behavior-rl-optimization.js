@@ -160,8 +160,8 @@ router.post('/analyze-and-optimize', async (req, res) => {
 
     console.log(`[Behavior RL] Analyzing behavior for userId=${userId}, lookback=${lookbackMinutes}min`);
     if (issueDetected) {
-      console.log(`[Behavior RL] 🚨 Difficulty detected: ${issueDetected.type} (${issueDetected.severity})`);
-      console.log(`[Behavior RL] 👤 User feedback: ${userFeedback}`);
+      console.log(`[Behavior RL]  Difficulty detected: ${issueDetected.type} (${issueDetected.severity})`);
+      console.log(`[Behavior RL]  User feedback: ${userFeedback}`);
     }
 
     // Get recent behavior logs
@@ -236,14 +236,14 @@ router.post('/analyze-and-optimize', async (req, res) => {
       await log.save();
     }
 
-    console.log(`[Behavior RL] ✅ Trained RL model with ${trainingResults.length} behavior-based samples`);
+    console.log(`[Behavior RL]  Trained RL model with ${trainingResults.length} behavior-based samples`);
 
     // If difficulty was detected and user gave negative feedback, get optimized settings
     let optimizationSuggestions = [];
     let appliedSettings = null;
 
     if (issueDetected && userFeedback === 'bad') {
-      console.log(`[Behavior RL] 🔧 User confirmed difficulty - generating optimized settings...`);
+      console.log(`[Behavior RL]  User confirmed difficulty - generating optimized settings...`);
 
       // Determine what to optimize based on issue type
       const parametersToOptimize = [];
@@ -289,7 +289,7 @@ router.post('/analyze-and-optimize', async (req, res) => {
             settings: settingsToApply
           });
           appliedSettings = settingsToApply;
-          console.log(`[Behavior RL] ✅ Auto-applied optimized settings:`, settingsToApply);
+          console.log(`[Behavior RL]  Auto-applied optimized settings:`, settingsToApply);
         } catch (applyError) {
           console.error(`[Behavior RL] Error applying settings:`, applyError.message);
         }

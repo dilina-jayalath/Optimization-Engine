@@ -11,7 +11,7 @@ function ManualSettingsControl({ userId, onSettingChange }) {
     const oldValue = settings[parameter];
 
     if (oldValue === newValue) {
-      console.log('⚠️ No change detected');
+      console.log('️ No change detected');
       return;
     }
 
@@ -72,15 +72,15 @@ function ManualSettingsControl({ userId, onSettingChange }) {
         }
       };
 
-      console.log('📤 Sending manual change as positive feedback to RL:', feedbackData);
+      console.log(' Sending manual change as positive feedback to RL:', feedbackData);
       const result = await submitFeedback(userId, feedbackData);
-      console.log('✅ RL model learned from manual change:', result);
+      console.log(' RL model learned from manual change:', result);
 
       if (onSettingChange) {
         onSettingChange({ parameter, oldValue, newValue });
       }
     } catch (error) {
-      console.error('❌ Error sending manual change to RL:', error);
+      console.error(' Error sending manual change to RL:', error);
     } finally {
       setIsSaving(false);
     }
@@ -108,22 +108,22 @@ function ManualSettingsControl({ userId, onSettingChange }) {
         onClick={() => setIsOpen(true)}
         className="btn btn-secondary gap-2"
       >
-        ⚙️ Manual Settings
+        ️ Manual Settings
       </button>
 
       {isOpen && (
         <div className="modal modal-open">
           <div className="modal-box max-w-3xl">
-            <h3 className="font-bold text-2xl mb-4">⚙️ Manual Settings Control</h3>
+            <h3 className="font-bold text-2xl mb-4">️ Manual Settings Control</h3>
             <p className="text-sm opacity-70 mb-6">
-              Your manual changes help train the RL model! 🤖 Each selection teaches the AI your preferences.
+              Your manual changes help train the RL model!  Each selection teaches the AI your preferences.
             </p>
 
             {/* Global Preview Toggle */}
             <div className="form-control mb-6 bg-base-200 p-4 rounded-lg">
               <label className="label cursor-pointer">
                 <div className="flex flex-col">
-                  <span className="label-text font-bold text-lg">👀 Preview on Dashboard</span>
+                  <span className="label-text font-bold text-lg"> Preview on Dashboard</span>
                   <span className="label-text-alt text-xs mt-1">If disabled, changes connect to client but won't affect this dashboard</span>
                 </div>
                 <input
@@ -215,14 +215,14 @@ function ManualSettingsControl({ userId, onSettingChange }) {
                     onClick={() => handleManualChange('theme', 'light')}
                     disabled={isSaving}
                   >
-                    ☀️ Light
+                    ️ Light
                   </button>
                   <button
                     className={`btn join-item flex-1 ${settings.theme === 'dark' ? 'btn-active' : 'btn-outline'}`}
                     onClick={() => handleManualChange('theme', 'dark')}
                     disabled={isSaving}
                   >
-                    🌙 Dark
+                     Dark
                   </button>
                 </div>
               </div>
@@ -369,7 +369,7 @@ function ManualSettingsControl({ userId, onSettingChange }) {
               {/* Info Alert */}
               <div className="alert alert-info">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>🤖 The RL model learns from your manual choices as strong positive feedback!</span>
+                <span> The RL model learns from your manual choices as strong positive feedback!</span>
               </div>
             </div>
 

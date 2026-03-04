@@ -62,7 +62,7 @@ function AppContent({ userId, onUserChange }) {
   };
 
   const handleFeedbackSubmitted = (feedback) => {
-    showToast('Feedback submitted successfully! 🎉', 'success');
+    showToast('Feedback submitted successfully! ', 'success');
     setFeedbackRefresh(prev => prev + 1); // Trigger refresh
     setActiveTab('feedback'); // Switch to feedback tab to show the new feedback
   };
@@ -74,13 +74,13 @@ function AppContent({ userId, onUserChange }) {
       .join(', ');
     const confidenceText = confidence ? ` (${(confidence * 100).toFixed(0)}% confident)` : '';
     const reasonText = reason ? ` - ${reason}` : '';
-    showToast(`🤖 RL Auto-Applied: ${updates}${confidenceText}${reasonText}`, 'success');
+    showToast(` RL Auto-Applied: ${updates}${confidenceText}${reasonText}`, 'success');
     loadUserData(); // Reload to get updated settings
   };
 
   const handleManualSettingChange = (changeInfo) => {
     const { parameter, oldValue, newValue } = changeInfo;
-    showToast(`⚙️ Manual Change: ${parameter} changed from ${oldValue} to ${newValue} (RL model learning...)`, 'info');
+    showToast(`️ Manual Change: ${parameter} changed from ${oldValue} to ${newValue} (RL model learning...)`, 'info');
     loadUserData();
   };
 
@@ -163,7 +163,7 @@ function AppContent({ userId, onUserChange }) {
             className="btn btn-circle btn-primary shadow-lg"
             title={`Switch to ${settings.theme === 'light' ? 'dark' : 'light'} mode`}
           >
-            {settings.theme === 'light' ? '🌙' : '☀️'}
+            {settings.theme === 'light' ? '' : '️'}
           </button>
         </div>
 
@@ -199,13 +199,13 @@ function AppContent({ userId, onUserChange }) {
                 className={`tab tab-lg ${activeTab === 'changes' ? 'tab-active' : ''}`}
                 onClick={() => setActiveTab('changes')}
               >
-                📜 Change History
+                 Change History
               </button>
               <button
                 className={`tab tab-lg ${activeTab === 'feedback' ? 'tab-active' : ''}`}
                 onClick={() => setActiveTab('feedback')}
               >
-                💬 Feedback & Impact
+                 Feedback & Impact
               </button>
             </div>
             <div className="ml-auto flex gap-2">
@@ -227,7 +227,7 @@ function AppContent({ userId, onUserChange }) {
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="card-title text-xl">📜 Change History</h2>
+                  <h2 className="card-title text-xl"> Change History</h2>
                   <span className="badge badge-info badge-lg">
                     {filteredHistory.length} changes
                   </span>
@@ -242,7 +242,7 @@ function AppContent({ userId, onUserChange }) {
 
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
-                <h2 className="card-title text-xl mb-4">🔍 Current Settings</h2>
+                <h2 className="card-title text-xl mb-4"> Current Settings</h2>
                 <ComparisonView
                   currentSettings={currentSettings}
                   previousSettings={currentIndex > 0 ? history[currentIndex - 1]?.settings : null}
@@ -254,7 +254,7 @@ function AppContent({ userId, onUserChange }) {
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="card-title text-xl">💬 User Feedback & Resulting Changes</h2>
+                <h2 className="card-title text-xl"> User Feedback & Resulting Changes</h2>
                 <span className="badge badge-info badge-lg">Track feedback impact</span>
               </div>
               <FeedbackHistory userId={userId} refreshKey={feedbackRefresh} />

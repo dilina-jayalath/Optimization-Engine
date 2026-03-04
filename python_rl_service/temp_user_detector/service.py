@@ -47,8 +47,8 @@ class TempUserDetectorService:
         self.artifact_store = artifact_store or ArtifactStore()
         self.model = model or self._load_best()
         self.baseline_repo = baseline_repo or TempBaselineRepo()
-        self.quarantine_threshold = 0.85  # Increased to prevent false positives during demo testing
-        self.reject_threshold = 0.95  # hard reject for high anomaly
+        self.quarantine_threshold = 0.55  # demo threshold (tune later)
+        self.reject_threshold = 0.75  # hard reject for high anomaly
         self.feature_order = list(FEATURE_ORDER)
 
     def train_global(self, feature_matrix: np.ndarray) -> None:
