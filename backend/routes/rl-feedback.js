@@ -407,4 +407,143 @@ router.post('/sync-daily', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/rl-feedback/updated-profile-settings/:userId
+ * Fetch the user's fully updated profile settings, combining manual and RL optimizations.
+ * This satisfies the ML Engine's request to pull the final profile settings for a user.
+ */
+router.get('/updated-profile-settings/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch the user from the DB to get their most up-to-date settings
+    const { User, Session } = require('../mongodb/schemas');
+    const userProfile = await User.findOne({ userId });
+
+    if (!userProfile) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Attempt to get the base profile from the earliest session of the day
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const earliestSession = await Session.findOne({
+      userId,
+      startTime: { $gte: startOfDay }
+    }).sort({ startTime: 1 });
+
+    let baseProfile = {};
+    if (earliestSession && earliestSession.settingsSnapshot && earliestSession.settingsSnapshot.start) {
+        baseProfile = earliestSession.settingsSnapshot.start;
+        console.log(`[RL FEEDBACK] Using base profile from session ${earliestSession.sessionId}`);
+    } else {
+        // Fallback to default if no session exists yet
+        baseProfile = {
+          font_size: 16,
+          line_height: 1.5,
+          target_size: 44,
+          theme: 'light',
+          contrast_mode: 'normal',
+          element_spacing_x: 8,
+          element_spacing_y: 8,
+          element_padding_x: 8,
+          element_padding_y: 8,
+          reduced_motion: false
+        };
+        console.log(`[RL FEEDBACK] No session found today. Using fallback default base profile.`);
+    }
+
+    const defaultFallback = {
+      font_size: 16,
+      line_height: 1.5,
+      target_size: 44,
+      theme: 'light',
+      contrast_mode: 'normal',
+      element_spacing_x: 8,
+      element_spacing_y: 8,
+      element_padding_x: 8,
+      element_padding_y: 8,
+      reduced_motion: false
+    };
+
+    // Ensure we have a complete picture of the base values (so target_size, etc. aren't missed)
+    const completeBaseProfile = { ...defaultFallback, ...baseProfile };
+    
+    const currentSettingsObj = userProfile.currentSettings && userProfile.currentSettings.toJSON 
+      ? userProfile.currentSettings.toJSON() 
+      : (userProfile.currentSettings || {});
+
+    const feedbackOverrides = [];
+
+    // Calculate changes comparing the complete base to the current settings
+    for (const [key, baseValue] of Object.entries(completeBaseProfile)) {
+      const currentValue = currentSettingsObj[key];
+      if (currentValue !== undefined && currentValue !== null && String(currentValue) !== String(baseValue)) {
+        // Prevent mismatch between int/float/string formats
+        if (typeof baseValue === 'number' && Number(currentValue) === baseValue) continue;
+
+        feedbackOverrides.push({
+          attribute: key,
+          old_value: baseValue,
+          new_value: currentValue
+        });
+      }
+    }
+
+    const responsePayload = {
+      user_id: userId,
+      session_id: `sess_${new Date().toISOString().split('T')[0].replace(/-/g, '')}_01`,
+      base_profile_version: 1, // Assuming version 1 for the base settings
+      sent_at: new Date().toISOString(),
+      feedback_overrides: feedbackOverrides
+    };
+
+    console.log(`\n📤 [RL FEEDBACK] Sent updated profile settings for user: ${userId}`);
+    
+    res.json(responsePayload);
+  } catch (error) {
+    console.error('❌ [RL FEEDBACK] Error fetching updated profile settings:', error);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+/**
+ * POST /api/rl-feedback/session-start
+ * Called by the frontend/NPM package when it first loads the profile from the Extension.
+ * This stores the "ground truth" baseProfile for the day, so `updated-profile-settings`
+ * can compare against it later.
+ */
+router.post('/session-start', async (req, res) => {
+  try {
+    const { userId, sessionId, baseProfile } = req.body;
+
+    if (!userId || !sessionId || !baseProfile) {
+      return res.status(400).json({ success: false, error: 'Missing userId, sessionId, or baseProfile' });
+    }
+
+    const { Session } = require('../mongodb/schemas');
+
+    // Upsert a session record to hold this start-of-day profile snapshot
+    await Session.findOneAndUpdate(
+      { sessionId },
+      {
+        $setOnInsert: {
+          userId,
+          startTime: new Date(),
+          'settingsSnapshot.start': baseProfile
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`[RL FEEDBACK] 🏁 Recorded session start and baseProfile for user: ${userId}`);
+    
+    res.json({ success: true, message: 'Session start profile recorded' });
+  } catch (error) {
+    console.error('❌ [RL FEEDBACK] Error recording session start:', error);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;

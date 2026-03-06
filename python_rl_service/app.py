@@ -730,6 +730,98 @@ def get_recommendation_text(parameter, current_value, suggested_value, last_feed
     else:
         return f"Based on learning, suggesting {suggested_value}"
 
+@app.route('/rl/sync', methods=['POST'])
+def sync_profile():
+    """
+    Sync user profile from the Node backend to the ML Engine
+    """
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        profile = data.get('profile', {})
+        
+        if user_id not in user_profiles:
+            user_profiles[user_id] = {}
+        
+        # Merge new settings
+        user_profiles[user_id].update(profile)
+        print(f"🔄 [RL Sync] Synced profile for {user_id}: {profile}")
+        
+        return jsonify({'success': True, 'message': 'Profile synced successfully'})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rl/updated-profile-settings/<user_id>', methods=['GET'])
+def get_updated_profile_settings(user_id):
+    """
+    Get updated profile settings details for a user.
+    Uses dynamic overrides computed from real user profiles and RL learned feedback.
+    """
+    try:
+        # Default starting profile as basis for comparison
+        base_profile = {
+          "font_size": 17,
+          "line_height": 1.6,
+          "contrast_mode": "normal",
+          "theme": "light",
+          "element_spacing_x": 7,
+          "element_spacing_y": 4,
+          "target_size": 32
+        }
+        
+        feedback_overrides = []
+        
+        # 1. Derive overrides from explicitly synced settings (user preferences)
+        custom_settings = user_profiles.get(user_id, {})
+        for attr, new_val in custom_settings.items():
+            db_key = attr.replace('fontSize', 'font_size').replace('lineHeight', 'line_height') \
+                         .replace('targetSize', 'target_size').replace('contrastMode', 'contrast_mode') \
+                         .replace('elementSpacing', 'element_spacing_y')
+            old_val = base_profile.get(db_key, "default")
+            
+            if str(old_val) != str(new_val):
+                feedback_overrides.append({
+                    "attribute": db_key,
+                    "old_value": old_val,
+                    "new_value": new_val,
+                    "source": "manual_sync"
+                })
+        
+        # 2. Derive overrides from RL learned preferences (Q-values)
+        for key, agent in agents_data.items():
+            if key.startswith(f"{user_id}:"):
+                parameter = key.split(":", 1)[1]
+                q_values_dict = agent.get('q_values', {})
+                if q_values_dict:
+                    # Find action with highest Q value > 0.6 (learned preference)
+                    best_action, max_q = max(q_values_dict.items(), key=lambda x: x[1])
+                    if max_q > 0.6:
+                        # Avoid duplicating if user explicitly set it
+                        if not any(o['attribute'] == parameter for o in feedback_overrides):
+                            old_val = base_profile.get(parameter, custom_settings.get(parameter, "default"))
+                            if str(old_val) != str(best_action):
+                                feedback_overrides.append({
+                                    "attribute": parameter,
+                                    "old_value": old_val,
+                                    "new_value": best_action,
+                                    "source": "rl_learning"
+                                })
+                                
+        # Standard structured response
+        response_data = {
+            "user_id": user_id,
+            "session_id": f"sess_{datetime.now().strftime('%Y%m%d')}_01",
+            "base_profile_version": 42,
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "feedback_overrides": feedback_overrides
+        }
+        
+        return jsonify(response_data)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     import os
     from dotenv import load_dotenv
