@@ -50,6 +50,8 @@ app.use('/api/feedback', feedbackRouter);
 app.use('/api/manual-settings', manualSettingsRouter);
 app.use('/api/trials', trialsRouter);
 app.use('/api/settings-events', settingsEventsRouter);
+// Also mount at /api/settings/events so the NPM package SSE hook can find it
+app.use('/api/settings/events', settingsEventsRouter);
 app.use('/api/rl-feedback', rlFeedbackRouter);
 app.use('/api/user-categorization', userCategorizationRouter);
 
@@ -110,6 +112,66 @@ app.post('/api/users/:userId/settings', async (req, res) => {
       success: true,
       data: updatedSettings
     });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =====================================================
+// NPM PACKAGE COMPATIBILITY ROUTES
+// The @aura/aura-adaptor NPM package expects /api/settings/:userId
+// while the dashboard uses /api/users/:userId/settings.
+// These aliases bridge the two so NovaCart picks up dashboard changes.
+// =====================================================
+
+/**
+ * GET /api/settings/:userId
+ * Returns the user's current settings (used by useUserSettingsStore on init)
+ */
+app.get('/api/settings/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await dbService.getUser(userId);
+    res.json({
+      found: true,
+      profile: user.currentSettings || {}
+    });
+  } catch (error) {
+    // User not found → no stored settings yet
+    res.json({ found: false, profile: null });
+  }
+});
+
+/**
+ * POST /api/settings/:userId
+ * Persists a settings patch and broadcasts via SSE
+ * (used by useUserSettingsStore.updateSettings)
+ */
+app.post('/api/settings/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { settings, source = 'dashboard' } = req.body;
+
+    const updatedSettings = await dbService.updateUserSettings(userId, settings, source);
+
+    // Broadcast so every SSE-connected tab (including NovaCart) gets the update
+    broadcastSettingsUpdate(userId, updatedSettings, source);
+
+    res.json({ success: true, data: updatedSettings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/settings/:userId/ml-sync
+ * End-of-day ML sync (used by useUserSettingsStore)
+ */
+app.post('/api/settings/:userId/ml-sync', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    // For now, acknowledge the sync request
+    res.json({ success: true, sent: 0 });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
