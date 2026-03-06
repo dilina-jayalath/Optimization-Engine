@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Moon, Sun, History, MessageSquare, Search } from 'lucide-react';
 import Header from './components/Header';
 import UserInfo from './components/UserInfo';
 import StatsCards from './components/StatsCards';
@@ -62,7 +63,7 @@ function AppContent({ userId, onUserChange }) {
   };
 
   const handleFeedbackSubmitted = (feedback) => {
-    showToast('Feedback submitted successfully! ', 'success');
+    showToast('Feedback submitted successfully.', 'success');
     setFeedbackRefresh(prev => prev + 1); // Trigger refresh
     setActiveTab('feedback'); // Switch to feedback tab to show the new feedback
   };
@@ -74,13 +75,13 @@ function AppContent({ userId, onUserChange }) {
       .join(', ');
     const confidenceText = confidence ? ` (${(confidence * 100).toFixed(0)}% confident)` : '';
     const reasonText = reason ? ` - ${reason}` : '';
-    showToast(` RL Auto-Applied: ${updates}${confidenceText}${reasonText}`, 'success');
+    showToast(`RL auto-applied: ${updates}${confidenceText}${reasonText}`, 'success');
     loadUserData(); // Reload to get updated settings
   };
 
   const handleManualSettingChange = (changeInfo) => {
     const { parameter, oldValue, newValue } = changeInfo;
-    showToast(`️ Manual Change: ${parameter} changed from ${oldValue} to ${newValue} (RL model learning...)`, 'info');
+    showToast(`Manual change: ${parameter} changed from ${oldValue} to ${newValue} (RL model learning...)`, 'info');
     loadUserData();
   };
 
@@ -153,8 +154,29 @@ function AppContent({ userId, onUserChange }) {
     );
   }
 
+  const clipPathPolygon =
+    'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)';
+
   return (
-    <div className="min-h-screen bg-base-200 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-base-200 p-4 md:p-6 lg:p-8 relative isolate overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80 pointer-events-none"
+      >
+        <div
+          style={{ clipPath: clipPathPolygon }}
+          className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-primary to-secondary opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
+        />
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)] pointer-events-none"
+      >
+        <div
+          style={{ clipPath: clipPathPolygon }}
+          className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-primary to-secondary opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+        />
+      </div>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Theme Toggle Button */}
         <div className="fixed top-4 right-4 z-50">
@@ -163,7 +185,7 @@ function AppContent({ userId, onUserChange }) {
             className="btn btn-circle btn-primary shadow-lg"
             title={`Switch to ${settings.theme === 'light' ? 'dark' : 'light'} mode`}
           >
-            {settings.theme === 'light' ? '' : '️'}
+            {settings.theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
         </div>
 
@@ -199,12 +221,14 @@ function AppContent({ userId, onUserChange }) {
                 className={`tab tab-lg ${activeTab === 'changes' ? 'tab-active' : ''}`}
                 onClick={() => setActiveTab('changes')}
               >
+                <History size={16} />
                 Change History
               </button>
               <button
                 className={`tab tab-lg ${activeTab === 'feedback' ? 'tab-active' : ''}`}
                 onClick={() => setActiveTab('feedback')}
               >
+                <MessageSquare size={16} />
                 Feedback & Impact
               </button>
             </div>
@@ -227,7 +251,7 @@ function AppContent({ userId, onUserChange }) {
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="card-title text-xl"> Change History</h2>
+                  <h2 className="card-title text-xl flex items-center gap-2"><History size={20} /> Change History</h2>
                   <span className="badge badge-info badge-lg">
                     {filteredHistory.length} changes
                   </span>
@@ -242,7 +266,7 @@ function AppContent({ userId, onUserChange }) {
 
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
-                <h2 className="card-title text-xl mb-4"> Current Settings</h2>
+                <h2 className="card-title text-xl mb-4 flex items-center gap-2"><Search size={20} /> Current Settings</h2>
                 <ComparisonView
                   currentSettings={currentSettings}
                   previousSettings={currentIndex > 0 ? history[currentIndex - 1]?.settings : null}
@@ -254,7 +278,7 @@ function AppContent({ userId, onUserChange }) {
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="card-title text-xl"> User Feedback & Resulting Changes</h2>
+                <h2 className="card-title text-xl flex items-center gap-2"><MessageSquare size={20} /> User Feedback & Resulting Changes</h2>
                 <span className="badge badge-info badge-lg">Track feedback impact</span>
               </div>
               <FeedbackHistory userId={userId} refreshKey={feedbackRefresh} />

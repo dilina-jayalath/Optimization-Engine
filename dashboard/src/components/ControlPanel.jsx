@@ -1,4 +1,5 @@
 import React from 'react';
+import { SlidersHorizontal, RotateCcw, RotateCw, Download, Trash2, Filter, Brain, Settings2, Hand } from 'lucide-react';
 
 function ControlPanel({ 
   canUndo, 
@@ -16,7 +17,7 @@ function ControlPanel({
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-               Controls
+              <SlidersHorizontal size={18} /> Controls
             </h3>
             <div className="flex flex-wrap gap-2">
               <button
@@ -25,7 +26,7 @@ function ControlPanel({
                 disabled={!canUndo}
                 title="Undo last change (Ctrl+Z)"
               >
-                ↶ Undo
+                <RotateCcw size={14} /> Undo
               </button>
               <button
                 className="btn btn-secondary btn-sm"
@@ -33,28 +34,28 @@ function ControlPanel({
                 disabled={!canRedo}
                 title="Redo change (Ctrl+Y)"
               >
-                ↷ Redo
+                <RotateCw size={14} /> Redo
               </button>
               <button
                 className="btn btn-success btn-sm"
                 onClick={onExport}
                 title="Export history as JSON"
               >
-                 Export
+                 <Download size={14} /> Export
               </button>
               <button
                 className="btn btn-error btn-sm"
                 onClick={onClear}
                 title="Clear all history"
               >
-                ️ Clear History
+                <Trash2 size={14} /> Clear History
               </button>
             </div>
           </div>
 
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-               Filter
+              <Filter size={18} /> Filter
             </h3>
             <div className="join">
               <button
@@ -67,19 +68,19 @@ function ControlPanel({
                 className={`btn btn-sm join-item ${filterType === 'ml' ? 'btn-active' : 'btn-ghost'}`}
                 onClick={() => onFilterChange('ml')}
               >
-                 ML
+                 <Brain size={14} /> ML
               </button>
               <button
                 className={`btn btn-sm join-item ${filterType === 'manual' ? 'btn-active' : 'btn-ghost'}`}
                 onClick={() => onFilterChange('manual')}
               >
-                 Manual
+                 <Hand size={14} /> Manual
               </button>
               <button
                 className={`btn btn-sm join-item ${filterType === 'system' ? 'btn-active' : 'btn-ghost'}`}
                 onClick={() => onFilterChange('system')}
               >
-                ️ System
+                <Settings2 size={14} /> System
               </button>
             </div>
           </div>
