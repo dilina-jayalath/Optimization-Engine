@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+if (!API_BASE_URL) {
+  console.warn("VITE_API_URL is not defined in .env! Things may break.");
+}
 
 export async function fetchUserData(userId) {
   try {
