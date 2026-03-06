@@ -328,12 +328,12 @@ app.post('/api/users/:userId/reset', async (req, res) => {
     const { userId } = req.params;
     
     const defaultSettings = {
-      fontSize: 'medium',
-      lineHeight: 1.5,
+      font_size: 16,
+      line_height: 1.5,
       theme: 'light',
-      contrastMode: 'normal',
-      elementSpacing: 'normal',
-      targetSize: 32
+      contrast_mode: 'normal',
+      element_spacing: 8,
+      target_size: 32
     };
     
     const updatedSettings = await dbService.updateUserSettings(

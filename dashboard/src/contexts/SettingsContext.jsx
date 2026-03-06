@@ -317,8 +317,6 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
       updateMultipleSettings,
       resetSettings,
       reloadSettings: loadUserSettings,
-      reloadSettings: loadUserSettings,
-      isLoaded,
       isLoaded,
       isPreviewEnabled,
       setIsPreviewEnabled: (enabled) => {

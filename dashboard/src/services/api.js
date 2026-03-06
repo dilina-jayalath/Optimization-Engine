@@ -15,11 +15,11 @@ export async function fetchUserData(userId) {
     return {
       userId,
       currentSettings: {
-        font_size: 'large',
-        theme: 'dark',
-        contrast_mode: 'high',
-        line_height: 1.6,
-        target_size: 28
+        font_size: 16,
+        theme: 'light',
+        contrast_mode: 'normal',
+        line_height: 1.5,
+        target_size: 32
       },
       mlProfile: {},
       lastActive: new Date().toISOString()

@@ -199,13 +199,13 @@ function AppContent({ userId, onUserChange }) {
                 className={`tab tab-lg ${activeTab === 'changes' ? 'tab-active' : ''}`}
                 onClick={() => setActiveTab('changes')}
               >
-                 Change History
+                Change History
               </button>
               <button
                 className={`tab tab-lg ${activeTab === 'feedback' ? 'tab-active' : ''}`}
                 onClick={() => setActiveTab('feedback')}
               >
-                 Feedback & Impact
+                Feedback & Impact
               </button>
             </div>
             <div className="ml-auto flex gap-2">
@@ -276,7 +276,7 @@ function getInitialUserId() {
   const params = new URLSearchParams(window.location.search);
   const fromQuery = params.get('userId');
   const stored = window.localStorage.getItem('aura_user_id');
-  return (fromQuery || stored || 'guest').trim();
+  return (fromQuery || stored || 'u_001').trim();
 }
 
 function App() {
