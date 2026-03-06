@@ -6,7 +6,7 @@ const router = express.Router();
 const axios = require('axios');
 const { Feedback, OptimizationEvent } = require('../mongodb/schemas');
 
-const RL_SERVICE_URL = process.env.RL_SERVICE_URL || 'http://localhost:8000';
+const RL_SERVICE_URL = process.env.RL_SERVICE_URL;
 
 /**
  * POST /api/rl-feedback/submit
@@ -278,12 +278,12 @@ const dbService = new RLMongoDBService();
     try {
         // Map common issues to parameters
         const issueToParam = {
-            'too_small': 'targetSize',
-            'too_large': 'targetSize', // Added for button/text size
-            'hard_to_read': 'fontSize', 
-            'bad_contrast': 'contrastMode',
-            'line_height': 'lineHeight',
-            'layout': 'elementSpacing',
+            'too_small': 'target_size',
+            'too_large': 'target_size', // Added for button/text size
+            'hard_to_read': 'font_size', 
+            'bad_contrast': 'contrast_mode',
+            'line_height': 'line_height',
+            'layout': 'element_spacing_x',
             'wrong_color': 'theme' 
         };
         
@@ -293,7 +293,7 @@ const dbService = new RLMongoDBService();
         const currentStyle = feedbackContext?.componentProps?.style || {};
         const currentProfile = feedbackContext?.currentProfile || {};
         
-        const currentVal = currentStyle[targetParam] || currentProfile[targetParam === 'fontSize' ? 'font_size' : targetParam === 'targetSize' ? 'target_size' : targetParam];
+        const currentVal = currentStyle[targetParam] || currentProfile[targetParam];
 
         console.log(`[RL Feedback] 🧠 Requesting fix for ${targetParam} (current: ${currentVal})`);
 

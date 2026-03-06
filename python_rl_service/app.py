@@ -384,28 +384,28 @@ def component_issue_feedback():
         suggested_value = None
         
         if issue == 'too_small':
-            parameter = 'targetSize'
+            parameter = 'target_size'
             # Suggest a larger target size
             suggested_value = 48
         elif issue == 'too_large':
-            parameter = 'targetSize'
+            parameter = 'target_size'
             # Suggest a smaller target size
             suggested_value = 32
         elif issue == 'hard_to_read':
-            parameter = 'fontSize'
-            suggested_value = 'large'
+            parameter = 'font_size'
+            suggested_value = 20
         elif issue == 'bad_contrast':
             parameter = 'theme'
             suggested_value = 'dark' # Often dark is higher contrast, or we could set 'high_contrast' mode
         elif issue == 'line_height':
-            parameter = 'lineHeight'
+            parameter = 'line_height'
             suggested_value = 1.6
         elif issue == 'wrong_color':
             parameter = 'theme'
             suggested_value = 'light'
         elif issue == 'layout':
-            parameter = 'elementSpacing'
-            suggested_value = 'compact'
+            parameter = 'element_spacing_x'
+            suggested_value = 12
             
         if parameter and suggested_value:
              print(f"   -> AI Suggestion: Change {parameter} to {suggested_value}")
@@ -706,15 +706,18 @@ def settings_events(user_id):
 def get_action_space(parameter):
     """Get possible actions for a parameter"""
     action_spaces = {
-        'fontSize': ['small', 'medium', 'large', 'x-large'],
-        'lineHeight': [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
+        'font_size': [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 28, 32],
+        'line_height': [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
         'theme': ['light', 'dark', 'auto'],
-        'contrastMode': ['normal', 'high'],
-        'elementSpacing': ['compact', 'normal', 'wide'],
-        'targetSize': [24, 28, 32, 36, 40, 44, 48, 52, 60, 72],
-        'reducedMotion': [False, True],
-        'tooltipAssist': [False, True],
-        'layoutSimplification': [False, True]
+        'contrast_mode': ['normal', 'high'],
+        'element_spacing_x': [4, 6, 8, 10, 12, 16],
+        'element_spacing_y': [4, 6, 8, 10, 12, 16],
+        'element_padding_x': [4, 6, 8, 10, 12, 16],
+        'element_padding_y': [4, 6, 8, 10, 12, 16],
+        'target_size': [24, 28, 32, 36, 40, 44, 48, 52, 60, 72],
+        'reduced_motion': [False, True],
+        'tooltip_assist': [False, True],
+        'layout_simplification': [False, True]
     }
     return action_spaces.get(parameter, ['default'])
 

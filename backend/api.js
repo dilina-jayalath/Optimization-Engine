@@ -21,7 +21,7 @@ const app = express();
 const dbService = new RLMongoDBService();
 
 // Python DQN Service URL
-const PYTHON_RL_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
+const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
@@ -728,32 +728,52 @@ async function getNextSuggestion(userId, parameter, currentState, feedbackType) 
  */
 function getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbackType) {
   const reasons = {
-    targetSize: {
-      increase: "Making buttons larger for easier interaction",
-      decrease: "Making buttons more compact",
-      same: "Button size seems optimal"
+    target_size: {
+      increase: "Making targets easier to tap based on misclicks",
+      decrease: "Optimizing screen space while maintaining usability",
+      same: "Target sizes seem optimal for your usage"
     },
-    fontSize: {
-      increase: "Increasing text size for better readability",
-      decrease: "Making text more compact",
-      same: "Text size seems perfect"
+    font_size: {
+      increase: "Increasing text size to improve readability",
+      decrease: "Optimizing text density for your reading speed",
+      same: "Current font size appears comfortable"
     },
-    lineHeight: {
-      increase: "Increasing line spacing for better readability",
-      decrease: "Making content more compact",
+    line_height: {
+      increase: "Adding more space between lines for better tracking",
+      decrease: "Condensing text to fit more content on screen",
       same: "Line spacing seems optimal"
     },
     theme: {
-      change: "Trying a different theme that might suit you better",
-      same: "Current theme seems to work well"
+      change: "Switching theme to reduce eye strain based on time/usage",
+      same: "Current theme seems comfortable"
     },
-    contrastMode: {
+    contrast_mode: {
       change: "Adjusting contrast for better visibility",
       same: "Contrast level seems appropriate"
     },
-    elementSpacing: {
-      change: "Adjusting element spacing for better layout",
-      same: "Spacing seems comfortable"
+    element_spacing_x: {
+      increase: "Adding more horizontal space for better layout",
+      decrease: "Compacting horizontal space to fit more",
+      same: "Horizontal spacing seems comfortable",
+      change: "Adjusting horizontal spacing"
+    },
+    element_spacing_y: {
+      increase: "Adding more vertical space for better layout",
+      decrease: "Compacting vertical space to fit more",
+      same: "Vertical spacing seems comfortable",
+      change: "Adjusting vertical spacing"
+    },
+    element_padding_x: {
+      increase: "Adding more horizontal padding",
+      decrease: "Reducing horizontal padding",
+      same: "Padding seems comfortable",
+      change: "Adjusting horizontal padding"
+    },
+    element_padding_y: {
+      increase: "Adding more vertical padding",
+      decrease: "Reducing vertical padding",
+      same: "Padding seems comfortable",
+      change: "Adjusting vertical padding"
     }
   };
   
@@ -767,7 +787,7 @@ function getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbac
 function getDirection(parameter, oldVal, newVal) {
   if (oldVal === newVal) return 'same';
   
-  const numericParams = ['targetSize', 'lineHeight'];
+  const numericParams = ['target_size', 'line_height', 'font_size', 'element_spacing_x', 'element_spacing_y', 'element_padding_x', 'element_padding_y'];
   if (numericParams.includes(parameter)) {
     const oldNum = typeof oldVal === 'number' ? oldVal : parseFloat(oldVal) || 0;
     const newNum = typeof newVal === 'number' ? newVal : parseFloat(newVal) || 0;
@@ -775,8 +795,7 @@ function getDirection(parameter, oldVal, newVal) {
   }
   
   const ordinalParams = {
-    fontSize: ['small', 'medium', 'large', 'x-large'],
-    elementSpacing: ['compact', 'normal', 'wide']
+    // contrast_mode doesn't technically go up/down in a clean scale, but could be added
   };
   
   if (ordinalParams[parameter]) {
@@ -799,12 +818,15 @@ function getRuleBasedSuggestion(parameter, currentState, feedbackType) {
   
   // Define progression paths
   const progressions = {
-    targetSize: [24, 28, 32, 36, 40, 44],
-    fontSize: ['small', 'medium', 'large', 'x-large'],
-    lineHeight: [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
+    target_size: [24, 28, 32, 36, 40, 44, 48, 52, 60],
+    font_size: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 28, 32],
+    line_height: [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
     theme: ['light', 'dark', 'auto'],
-    contrastMode: ['normal', 'high'],
-    elementSpacing: ['compact', 'normal', 'wide']
+    contrast_mode: ['normal', 'high'],
+    element_spacing_x: [2, 4, 6, 8, 10, 12, 16],
+    element_spacing_y: [2, 4, 6, 8, 10, 12, 16],
+    element_padding_x: [4, 8, 12, 16, 20, 24],
+    element_padding_y: [4, 8, 12, 16, 20, 24]
   };
   
   const options = progressions[parameter] || [currentValue];
@@ -1306,7 +1328,7 @@ app.use((err, req, res, next) => {
 // =====================================================
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/optimization-engine';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
   .then(() => {

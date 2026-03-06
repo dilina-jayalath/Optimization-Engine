@@ -12,12 +12,16 @@ export function useSettings() {
 
 export function SettingsProvider({ children, userId = 'u_001' }) {
   const DEFAULT_SETTINGS = {
-    fontSize: 'medium',
-    targetSize: 32,
-    lineHeight: 1.5,
+    font_size: 16,
+    target_size: 32,
+    line_height: 1.5,
     theme: 'light',
-    contrastMode: 'normal',
-    elementSpacing: 'normal'
+    contrast_mode: 'normal',
+    element_spacing_x: 8,
+    element_spacing_y: 8,
+    primary_color: '#1a73e8',
+    secondary_color: '#1a73e8',
+    accent_color: '#e37400'
   };
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -38,7 +42,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
 
   const loadUserSettings = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_BASE_URL = import.meta.env.VITE_API_URL;
       const response = await fetch(`${API_BASE_URL}/users/${userId}`);
       const data = await response.json();
 
@@ -89,14 +93,8 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
     }
 
     // Font Size - Use !important to override Tailwind
-    if (newSettings.fontSize) {
-      const fontSizeMap = {
-        'small': '14px',
-        'medium': '16px',
-        'large': '18px',
-        'x-large': '20px'
-      };
-      const size = fontSizeMap[newSettings.fontSize] || newSettings.fontSize;
+    if (newSettings.font_size) {
+      const size = `${newSettings.font_size}px`;
 
       // Remove existing fontSize style and re-apply with !important
       const style = document.createElement('style');
@@ -111,12 +109,12 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(` Applied fontSize: ${size}`);
+      console.log(` Applied font_size: ${size}`);
     }
 
     // Target/Button Size
-    if (newSettings.targetSize) {
-      const size = Number(newSettings.targetSize);
+    if (newSettings.target_size) {
+      const size = Number(newSettings.target_size);
 
       const style = document.createElement('style');
       style.id = 'rl-targetSize-override';
@@ -130,12 +128,12 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(` Applied targetSize: ${size}px`);
+      console.log(` Applied target_size: ${size}px`);
     }
 
     // Line Height
-    if (newSettings.lineHeight) {
-      const lineHeight = Number(newSettings.lineHeight);
+    if (newSettings.line_height) {
+      const lineHeight = Number(newSettings.line_height);
 
       const style = document.createElement('style');
       style.id = 'rl-lineHeight-override';
@@ -148,7 +146,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         }
       `;
       document.head.appendChild(style);
-      console.log(` Applied lineHeight: ${lineHeight}`);
+      console.log(` Applied line_height: ${lineHeight}`);
     }
 
     // Theme - DaisyUI requires 'data-theme' on html element
@@ -161,15 +159,15 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
     }
 
     // Contrast Mode
-    if (newSettings.contrastMode) {
-      document.documentElement.setAttribute('data-contrast', newSettings.contrastMode);
+    if (newSettings.contrast_mode) {
+      document.documentElement.setAttribute('data-contrast', newSettings.contrast_mode);
 
       const style = document.createElement('style');
       style.id = 'rl-contrast-override';
       const oldStyle = document.getElementById('rl-contrast-override');
       if (oldStyle) oldStyle.remove();
 
-      if (newSettings.contrastMode === 'high') {
+      if (newSettings.contrast_mode === 'high') {
         style.textContent = `
           body {
             filter: contrast(1.5) !important;
@@ -177,17 +175,13 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
         `;
         document.head.appendChild(style);
       }
-      console.log(` Applied contrastMode: ${newSettings.contrastMode}`);
+      console.log(` Applied contrast_mode: ${newSettings.contrast_mode}`);
     }
 
     // Element Spacing
-    if (newSettings.elementSpacing) {
-      const spacingMap = {
-        compact: '0.25rem',
-        normal: '0.5rem',
-        spacious: '1rem'
-      };
-      const spacing = spacingMap[newSettings.elementSpacing] || '0.5rem';
+    if (newSettings.element_spacing_x !== undefined || newSettings.element_spacing_y !== undefined) {
+      const spacingX = newSettings.element_spacing_x || 8;
+      const spacingY = newSettings.element_spacing_y || 8;
 
       const style = document.createElement('style');
       style.id = 'rl-spacing-override';
@@ -195,48 +189,50 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
       if (oldStyle) oldStyle.remove();
 
       style.textContent = `
-        .gap-2, .gap-4, .gap-6, .space-y-4, .space-y-6 {
-          gap: ${spacing} !important;
+        .gap-2, .gap-4, .gap-6, .space-x-4, .space-x-6, .flex-row {
+          column-gap: ${spacingX}px !important;
+        }
+        .gap-2, .gap-4, .gap-6, .space-y-4, .space-y-6, .flex-col {
+          row-gap: ${spacingY}px !important;
         }
       `;
       document.head.appendChild(style);
-      console.log(` Applied elementSpacing: ${spacing}`);
+      console.log(` Applied element_spacing_x: ${spacingX}px, _y: ${spacingY}px`);
     }
 
     // Branding Colors
-    if (newSettings.primaryColor) {
-      document.documentElement.style.setProperty('--p', hexToHsl(newSettings.primaryColor));
-      console.log(` Applied primaryColor: ${newSettings.primaryColor}`);
+    if (newSettings.primary_color) {
+      document.documentElement.style.setProperty('--p', hexToHsl(newSettings.primary_color));
+      console.log(` Applied primary_color: ${newSettings.primary_color}`);
     }
-    if (newSettings.secondaryColor) {
-      document.documentElement.style.setProperty('--s', hexToHsl(newSettings.secondaryColor));
-      console.log(` Applied secondaryColor: ${newSettings.secondaryColor}`);
+    if (newSettings.secondary_color) {
+      document.documentElement.style.setProperty('--s', hexToHsl(newSettings.secondary_color));
+      console.log(` Applied secondary_color: ${newSettings.secondary_color}`);
     }
-    if (newSettings.accentColor) {
-      document.documentElement.style.setProperty('--a', hexToHsl(newSettings.accentColor));
-      console.log(` Applied accentColor: ${newSettings.accentColor}`);
+    if (newSettings.accent_color) {
+      document.documentElement.style.setProperty('--a', hexToHsl(newSettings.accent_color));
+      console.log(` Applied accent_color: ${newSettings.accent_color}`);
     }
 
     // Reduced Motion
-    if (newSettings.reducedMotion) {
+    if (newSettings.reduced_motion !== undefined) {
       const style = document.createElement('style');
       style.id = 'rl-motion-override';
       const oldStyle = document.getElementById('rl-motion-override');
       if (oldStyle) oldStyle.remove();
 
-      style.textContent = `
-        *, ::before, ::after {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-          transition-duration: 0.01ms !important;
-          scroll-behavior: auto !important;
-        }
-      `;
-      document.head.appendChild(style);
-      console.log(' Applied reducedMotion: true');
-    } else {
-      const oldStyle = document.getElementById('rl-motion-override');
-      if (oldStyle) oldStyle.remove();
+      if (newSettings.reduced_motion) {
+        style.textContent = `
+          *, ::before, ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
+        `;
+        document.head.appendChild(style);
+        console.log(' Applied reduced_motion: true');
+      }
     }
 
     console.log(' All settings applied successfully');
@@ -311,14 +307,7 @@ export function SettingsProvider({ children, userId = 'u_001' }) {
   };
 
   const resetSettings = () => {
-    setSettings({
-      fontSize: 'medium',
-      targetSize: 32,
-      lineHeight: 1.5,
-      theme: 'light',
-      contrastMode: 'normal',
-      elementSpacing: 'normal'
-    });
+    setSettings(DEFAULT_SETTINGS);
   };
 
   return (

@@ -37,19 +37,24 @@ router.get('/:userId', async (req, res) => {
       hasManualSettings: settings.enabled,
       settings: {
         enabled: settings.enabled,
-        fontSize: settings.fontSize,
-        lineHeight: settings.lineHeight,
-        contrast: settings.contrast,
-        spacing: settings.spacing,
-        targetSize: settings.targetSize,
+        font_size: settings.font_size,
+        line_height: settings.line_height,
+        contrast_mode: settings.contrast_mode,
+        element_spacing_x: settings.element_spacing_x,
+        element_spacing_y: settings.element_spacing_y,
+        element_padding_x: settings.element_padding_x,
+        element_padding_y: settings.element_padding_y,
+        target_size: settings.target_size,
         theme: settings.theme,
-        reducedMotion: settings.reducedMotion,
-        primaryColor: settings.primaryColor,
-        secondaryColor: settings.secondaryColor,
-        accentColor: settings.accentColor,
-        accentColor: settings.accentColor,
-        tooltipAssist: settings.tooltipAssist,
-        layoutSimplification: settings.layoutSimplification,
+        reduced_motion: settings.reduced_motion,
+        primary_color: settings.primary_color,
+        primary_color_content: settings.primary_color_content,
+        secondary_color: settings.secondary_color,
+        secondary_color_content: settings.secondary_color_content,
+        accent_color: settings.accent_color,
+        accent_color_content: settings.accent_color_content,
+        tooltip_assist: settings.tooltip_assist,
+        layout_simplification: settings.layout_simplification,
         lastModified: settings.updatedAt,
       },
     });
@@ -69,65 +74,54 @@ router.get('/:userId', async (req, res) => {
 router.put('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const {
-      enabled,
-      fontSize,
-      lineHeight,
-      contrast,
-      spacing,
-      targetSize,
-      theme,
-      reducedMotion,
-      primaryColor,
-      secondaryColor,
-      accentColor,
-      tooltipAssist,
-      layoutSimplification,
-    } = req.body;
-
-    console.log(`[Manual Settings] Updating settings for userId=${userId}`, {
-      enabled,
-      fontSize,
-      contrast,
-      tooltipAssist,
-      layoutSimplification
-    });
-
     const settings = await ManualSettings.findOneAndUpdate(
       { userId },
       {
         userId,
-        enabled: enabled ?? true,
-        fontSize: fontSize || '16px',
-        lineHeight: lineHeight || 1.5,
-        contrast: contrast || 'normal',
-        spacing: spacing || 'normal',
-        targetSize: targetSize || '44px',
-        theme: theme || 'light',
-        reducedMotion: reducedMotion ?? false,
-        primaryColor: primaryColor || '#007bff',
-        secondaryColor: secondaryColor || '#6c757d',
-        accentColor: accentColor || '#28a745',
-        tooltipAssist: tooltipAssist ?? false,
-        layoutSimplification: layoutSimplification ?? false,
+        enabled: req.body.enabled ?? true,
+        font_size: req.body.font_size || 16,
+        line_height: req.body.line_height || 1.5,
+        contrast_mode: req.body.contrast_mode || 'normal',
+        element_spacing_x: req.body.element_spacing_x || 8,
+        element_spacing_y: req.body.element_spacing_y || 8,
+        element_padding_x: req.body.element_padding_x || 8,
+        element_padding_y: req.body.element_padding_y || 8,
+        target_size: req.body.target_size || 44,
+        theme: req.body.theme || 'light',
+        reduced_motion: req.body.reduced_motion ?? false,
+        primary_color: req.body.primary_color || '#007bff',
+        primary_color_content: req.body.primary_color_content || '#ffffff',
+        secondary_color: req.body.secondary_color || '#6c757d',
+        secondary_color_content: req.body.secondary_color_content || '#ffffff',
+        accent_color: req.body.accent_color || '#28a745',
+        accent_color_content: req.body.accent_color_content || '#ffffff',
+        tooltip_assist: req.body.tooltip_assist ?? false,
+        layout_simplification: req.body.layout_simplification ?? false,
       },
       { upsert: true, new: true }
     );
 
-    const targetSizeValue = Number.parseInt(String(settings.targetSize), 10);
+    const targetSizeValue = Number.parseInt(String(settings.target_size), 10);
 
     await User.findOneAndUpdate(
       { userId },
       {
         $set: {
-          'currentSettings.fontSize': settings.fontSize,
-          'currentSettings.lineHeight': settings.lineHeight,
+          'currentSettings.font_size': settings.font_size,
+          'currentSettings.line_height': settings.line_height,
           'currentSettings.theme': settings.theme,
-          'currentSettings.contrastMode': settings.contrast,
-          'currentSettings.elementSpacing': settings.spacing,
-          'currentSettings.targetSize': Number.isNaN(targetSizeValue) ? settings.targetSize : targetSizeValue,
-          'currentSettings.tooltipAssist': settings.tooltipAssist,
-          'currentSettings.layoutSimplification': settings.layoutSimplification
+          'currentSettings.contrast_mode': settings.contrast_mode,
+          'currentSettings.element_spacing_x': settings.element_spacing_x,
+          'currentSettings.element_spacing_y': settings.element_spacing_y,
+          'currentSettings.element_padding_x': settings.element_padding_x,
+          'currentSettings.element_padding_y': settings.element_padding_y,
+          'currentSettings.target_size': Number.isNaN(targetSizeValue) ? settings.target_size : targetSizeValue,
+          'currentSettings.tooltip_assist': settings.tooltip_assist,
+          'currentSettings.layout_simplification': settings.layout_simplification,
+          'currentSettings.reduced_motion': settings.reduced_motion,
+          'currentSettings.primary_color': settings.primary_color,
+          'currentSettings.secondary_color': settings.secondary_color,
+          'currentSettings.accent_color': settings.accent_color
         }
       },
       { upsert: true }
@@ -228,18 +222,24 @@ router.post('/:userId/reset', async (req, res) => {
       {
         userId,
         enabled: false,
-        fontSize: '16px',
-        lineHeight: 1.5,
-        contrast: 'normal',
-        spacing: 'normal',
-        targetSize: '44px',
+        font_size: 16,
+        line_height: 1.5,
+        contrast_mode: 'normal',
+        element_spacing_x: 8,
+        element_spacing_y: 8,
+        element_padding_x: 8,
+        element_padding_y: 8,
+        target_size: 44,
         theme: 'light',
-        reducedMotion: false,
-        primaryColor: '#007bff',
-        secondaryColor: '#6c757d',
-        accentColor: '#28a745',
-        tooltipAssist: false,
-        layoutSimplification: false,
+        reduced_motion: false,
+        primary_color: '#007bff',
+        primary_color_content: '#ffffff',
+        secondary_color: '#6c757d',
+        secondary_color_content: '#ffffff',
+        accent_color: '#28a745',
+        accent_color_content: '#ffffff',
+        tooltip_assist: false,
+        layout_simplification: false,
       },
       { upsert: true, new: true }
     );
@@ -252,19 +252,24 @@ router.post('/:userId/reset', async (req, res) => {
       message: 'Settings reset to defaults',
       settings: {
         enabled: settings.enabled,
-        fontSize: settings.fontSize,
-        lineHeight: settings.lineHeight,
-        contrast: settings.contrast,
-        spacing: settings.spacing,
-        targetSize: settings.targetSize,
+        font_size: settings.font_size,
+        line_height: settings.line_height,
+        contrast_mode: settings.contrast_mode,
+        element_spacing_x: settings.element_spacing_x,
+        element_spacing_y: settings.element_spacing_y,
+        element_padding_x: settings.element_padding_x,
+        element_padding_y: settings.element_padding_y,
+        target_size: settings.target_size,
         theme: settings.theme,
-        reducedMotion: settings.reducedMotion,
-        primaryColor: settings.primaryColor,
-        secondaryColor: settings.secondaryColor,
-        secondaryColor: settings.secondaryColor,
-        accentColor: settings.accentColor,
-        tooltipAssist: settings.tooltipAssist,
-        layoutSimplification: settings.layoutSimplification,
+        reduced_motion: settings.reduced_motion,
+        primary_color: settings.primary_color,
+        primary_color_content: settings.primary_color_content,
+        secondary_color: settings.secondary_color,
+        secondary_color_content: settings.secondary_color_content,
+        accent_color: settings.accent_color,
+        accent_color_content: settings.accent_color_content,
+        tooltip_assist: settings.tooltip_assist,
+        layout_simplification: settings.layout_simplification,
       },
     });
   } catch (error) {
@@ -299,35 +304,45 @@ router.post('/apply', async (req, res) => {
       {
         userId,
         enabled: true,
-        ...(newSettings.fontSize && { fontSize: newSettings.fontSize }),
-        ...(newSettings.lineHeight && { lineHeight: newSettings.lineHeight }),
-        ...(newSettings.contrast && { contrast: newSettings.contrast }),
-        ...(newSettings.spacing && { spacing: newSettings.spacing }),
-        ...(newSettings.targetSize && { targetSize: newSettings.targetSize }),
+        ...(newSettings.font_size && { font_size: newSettings.font_size }),
+        ...(newSettings.line_height && { line_height: newSettings.line_height }),
+        ...(newSettings.contrast_mode && { contrast_mode: newSettings.contrast_mode }),
+        ...(newSettings.element_spacing_x && { element_spacing_x: newSettings.element_spacing_x }),
+        ...(newSettings.element_spacing_y && { element_spacing_y: newSettings.element_spacing_y }),
+        ...(newSettings.element_padding_x && { element_padding_x: newSettings.element_padding_x }),
+        ...(newSettings.element_padding_y && { element_padding_y: newSettings.element_padding_y }),
+        ...(newSettings.target_size && { target_size: newSettings.target_size }),
         ...(newSettings.theme && { theme: newSettings.theme }),
-        ...(newSettings.reducedMotion !== undefined && { reducedMotion: newSettings.reducedMotion }),
-        ...(newSettings.primaryColor && { primaryColor: newSettings.primaryColor }),
-        ...(newSettings.secondaryColor && { secondaryColor: newSettings.secondaryColor }),
-        ...(newSettings.accentColor && { accentColor: newSettings.accentColor }),
-        ...(newSettings.tooltipAssist !== undefined && { tooltipAssist: newSettings.tooltipAssist }),
-        ...(newSettings.layoutSimplification !== undefined && { layoutSimplification: newSettings.layoutSimplification }),
+        ...(newSettings.reduced_motion !== undefined && { reduced_motion: newSettings.reduced_motion }),
+        ...(newSettings.primary_color && { primary_color: newSettings.primary_color }),
+        ...(newSettings.primary_color_content && { primary_color_content: newSettings.primary_color_content }),
+        ...(newSettings.secondary_color && { secondary_color: newSettings.secondary_color }),
+        ...(newSettings.secondary_color_content && { secondary_color_content: newSettings.secondary_color_content }),
+        ...(newSettings.accent_color && { accent_color: newSettings.accent_color }),
+        ...(newSettings.accent_color_content && { accent_color_content: newSettings.accent_color_content }),
+        ...(newSettings.tooltip_assist !== undefined && { tooltip_assist: newSettings.tooltip_assist }),
+        ...(newSettings.layout_simplification !== undefined && { layout_simplification: newSettings.layout_simplification }),
       },
       { upsert: true, new: true }
     );
 
     // Also update User.currentSettings for dashboard persistence
     const userUpdateData = {};
-    if (newSettings.fontSize) userUpdateData['currentSettings.fontSize'] = newSettings.fontSize;
-    if (newSettings.lineHeight) userUpdateData['currentSettings.lineHeight'] = newSettings.lineHeight;
+    if (newSettings.font_size) userUpdateData['currentSettings.font_size'] = newSettings.font_size;
+    if (newSettings.line_height) userUpdateData['currentSettings.line_height'] = newSettings.line_height;
     if (newSettings.theme) userUpdateData['currentSettings.theme'] = newSettings.theme;
-    if (newSettings.contrast) userUpdateData['currentSettings.contrastMode'] = newSettings.contrast;
-    if (newSettings.spacing) userUpdateData['currentSettings.elementSpacing'] = newSettings.spacing;
-    if (newSettings.targetSize) {
-      const targetSizeValue = Number.parseInt(String(newSettings.targetSize), 10);
-      userUpdateData['currentSettings.targetSize'] = Number.isNaN(targetSizeValue) ? newSettings.targetSize : targetSizeValue;
+    if (newSettings.contrast_mode) userUpdateData['currentSettings.contrast_mode'] = newSettings.contrast_mode;
+    if (newSettings.element_spacing_x) userUpdateData['currentSettings.element_spacing_x'] = newSettings.element_spacing_x;
+    if (newSettings.element_spacing_y) userUpdateData['currentSettings.element_spacing_y'] = newSettings.element_spacing_y;
+    if (newSettings.element_padding_x) userUpdateData['currentSettings.element_padding_x'] = newSettings.element_padding_x;
+    if (newSettings.element_padding_y) userUpdateData['currentSettings.element_padding_y'] = newSettings.element_padding_y;
+    if (newSettings.target_size) {
+      const targetSizeValue = Number.parseInt(String(newSettings.target_size), 10);
+      userUpdateData['currentSettings.target_size'] = Number.isNaN(targetSizeValue) ? newSettings.target_size : targetSizeValue;
     }
-    if (newSettings.tooltipAssist !== undefined) userUpdateData['currentSettings.tooltipAssist'] = newSettings.tooltipAssist;
-    if (newSettings.layoutSimplification !== undefined) userUpdateData['currentSettings.layoutSimplification'] = newSettings.layoutSimplification;
+    if (newSettings.tooltip_assist !== undefined) userUpdateData['currentSettings.tooltip_assist'] = newSettings.tooltip_assist;
+    if (newSettings.layout_simplification !== undefined) userUpdateData['currentSettings.layout_simplification'] = newSettings.layout_simplification;
+
 
     if (Object.keys(userUpdateData).length > 0) {
       await User.findOneAndUpdate(

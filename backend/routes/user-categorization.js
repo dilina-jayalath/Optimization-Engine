@@ -15,15 +15,18 @@ const WCAG_CATEGORIES = {
     needs: ['high_contrast', 'large_fonts', 'clear_spacing'],
     settings: {
       theme: 'dark',
-      fontSize: 'x-large',
-      contrast: 'high',
-      lineHeight: 1.8,
-      spacing: 'relaxed',
-      targetSize: 48,
-      primaryColor: '#ffffff',
-      accentColor: '#00ff00'
+      font_size: 20, // using approximate pixel num instead of 'x-large'
+      contrast_mode: 'high',
+      line_height: 1.8,
+      element_spacing_x: 12, // originally 'relaxed'
+      element_spacing_y: 12,
+      element_padding_x: 12,
+      element_padding_y: 12,
+      target_size: 48,
+      primary_color: '#ffffff',
+      accent_color: '#00ff00'
     },
-    priority: ['fontSize', 'contrast', 'targetSize', 'theme']
+    priority: ['font_size', 'contrast_mode', 'target_size', 'theme']
   },
   
   MOTOR_IMPAIRED: {
@@ -31,13 +34,14 @@ const WCAG_CATEGORIES = {
     wcagLevel: 'AA',
     needs: ['large_targets', 'generous_spacing', 'reduced_motion'],
     settings: {
-      targetSize: 56,
-      spacing: 'relaxed',
-      reducedMotion: true,
-      fontSize: 'large',
-      lineHeight: 1.8
+      target_size: 56,
+      element_spacing_x: 12,
+      element_spacing_y: 12,
+      reduced_motion: true,
+      font_size: 20,
+      line_height: 1.8
     },
-    priority: ['targetSize', 'spacing', 'reducedMotion']
+    priority: ['target_size', 'element_spacing_x', 'element_spacing_y', 'reduced_motion']
   },
   
   COGNITIVE_NEEDS: {
@@ -45,14 +49,15 @@ const WCAG_CATEGORIES = {
     wcagLevel: 'AAA',
     needs: ['simple_layout', 'clear_text', 'consistent_interface'],
     settings: {
-      fontSize: 'large',
-      lineHeight: 2.0,
-      spacing: 'relaxed',
-      contrast: 'high',
+      font_size: 20,
+      line_height: 2.0,
+      element_spacing_x: 12,
+      element_spacing_y: 12,
+      contrast_mode: 'high',
       theme: 'light',
-      reducedMotion: true
+      reduced_motion: true
     },
-    priority: ['fontSize', 'lineHeight', 'spacing', 'contrast']
+    priority: ['font_size', 'line_height', 'element_spacing_x', 'element_spacing_y', 'contrast_mode']
   },
   
   ELDERLY: {
@@ -60,14 +65,15 @@ const WCAG_CATEGORIES = {
     wcagLevel: 'AA',
     needs: ['readable_text', 'easy_interaction', 'clear_interface'],
     settings: {
-      fontSize: 'x-large',
-      targetSize: 52,
-      lineHeight: 1.8,
-      contrast: 'enhanced',
-      spacing: 'comfortable',
-      reducedMotion: true
+      font_size: 20,
+      target_size: 52,
+      line_height: 1.8,
+      contrast_mode: 'high',
+      element_spacing_x: 8,
+      element_spacing_y: 8,
+      reduced_motion: true
     },
-    priority: ['fontSize', 'targetSize', 'lineHeight', 'contrast']
+    priority: ['font_size', 'target_size', 'line_height', 'contrast_mode']
   },
   
   STANDARD: {
@@ -75,14 +81,15 @@ const WCAG_CATEGORIES = {
     wcagLevel: 'A',
     needs: ['general_usability'],
     settings: {
-      fontSize: 'medium',
-      targetSize: 44,
-      lineHeight: 1.5,
-      contrast: 'normal',
-      spacing: 'normal',
+      font_size: 16,
+      target_size: 44,
+      line_height: 1.5,
+      contrast_mode: 'normal',
+      element_spacing_x: 8,
+      element_spacing_y: 8,
       theme: 'light'
     },
-    priority: ['theme', 'fontSize']
+    priority: ['theme', 'font_size']
   }
 };
 
@@ -154,7 +161,7 @@ router.post('/analyze', async (req, res) => {
 
     // Analyze feedback history to determine preferences
     const behaviorData = {
-      preferredFontSize: 'medium',
+      preferredFontSize: 16,
       preferredTargetSize: 44,
       preferredContrast: 'normal',
       preferredReducedMotion: false,
@@ -167,18 +174,18 @@ router.post('/analyze', async (req, res) => {
       const positiveFeedback = feedbackHistory.filter(f => f.feedback === 'positive');
       
       // Find most positively rated settings
-      const fontSizes = positiveFeedback.filter(f => f.settingKey === 'fontSize' || f.settingKey === 'font_size');
+      const fontSizes = positiveFeedback.filter(f => f.settingKey === 'font_size');
       if (fontSizes.length > 0) {
         behaviorData.preferredFontSize = fontSizes[fontSizes.length - 1].newValue;
       }
 
-      const targetSizes = positiveFeedback.filter(f => f.settingKey === 'targetSize' || f.settingKey === 'target_size');
+      const targetSizes = positiveFeedback.filter(f => f.settingKey === 'target_size');
       if (targetSizes.length > 0) {
         const lastTarget = targetSizes[targetSizes.length - 1].newValue;
         behaviorData.preferredTargetSize = typeof lastTarget === 'number' ? lastTarget : parseInt(lastTarget);
       }
 
-      const contrasts = positiveFeedback.filter(f => f.settingKey === 'contrast');
+      const contrasts = positiveFeedback.filter(f => f.settingKey === 'contrast_mode');
       if (contrasts.length > 0) {
         behaviorData.preferredContrast = contrasts[contrasts.length - 1].newValue;
       }
@@ -186,9 +193,9 @@ router.post('/analyze', async (req, res) => {
 
     // Use current settings if no history
     if (currentSettings) {
-      behaviorData.preferredFontSize = currentSettings.fontSize || behaviorData.preferredFontSize;
-      behaviorData.preferredTargetSize = currentSettings.targetSize || behaviorData.preferredTargetSize;
-      behaviorData.preferredContrast = currentSettings.contrast || behaviorData.preferredContrast;
+      behaviorData.preferredFontSize = currentSettings.font_size || behaviorData.preferredFontSize;
+      behaviorData.preferredTargetSize = currentSettings.target_size || behaviorData.preferredTargetSize;
+      behaviorData.preferredContrast = currentSettings.contrast_mode || behaviorData.preferredContrast;
       behaviorData.preferredTheme = currentSettings.theme || behaviorData.preferredTheme;
     }
 

@@ -15,7 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 
 // RL Service URL
-const PYTHON_RL_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
+const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
 /**
  * Trial Management API
@@ -653,12 +653,12 @@ async function checkPromptCooldowns(preferenceState, trial) {
 
 function mapSettingKeyToProfileKey(settingKey) {
   const map = {
-    'visual.fontSize': 'fontSize',
-    'visual.lineHeight': 'lineHeight',
+    'visual.fontSize': 'font_size',
+    'visual.lineHeight': 'line_height',
     'visual.theme': 'theme',
-    'visual.contrast': 'contrast',
-    'layout.spacing': 'spacing',
-    'motor.targetSize': 'targetSize'
+    'visual.contrast': 'contrast_mode',
+    'layout.spacing': 'element_spacing_x',
+    'motor.targetSize': 'target_size'
   };
 
   return map[settingKey] || settingKey;

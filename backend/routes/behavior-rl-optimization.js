@@ -16,7 +16,7 @@ const mongoose = require('mongoose');
 const axios = require('axios');
 const router = express.Router();
 
-const RL_SERVICE_URL = process.env.RL_SERVICE_URL || 'http://localhost:8000';
+const RL_SERVICE_URL = process.env.RL_SERVICE_URL;
 
 // Reference to BehaviorLog from behavior.js
 const BehaviorLog = mongoose.models.BehaviorLog || 
@@ -113,16 +113,16 @@ function calculateImplicitReward(metrics) {
  */
 function getOptimizationReason(parameter, metrics) {
   switch (parameter) {
-    case 'targetSize':
+    case 'target_size':
       if (metrics.misclickCount > 2) return 'Reducing misclicks with larger targets';
       if (metrics.rageClickCount > 1) return 'Reducing frustration with better target sizing';
       return 'Optimizing target size for better interaction';
     
-    case 'fontSize':
+    case 'font_size':
       if (metrics.errorCount > 1) return 'Improving readability to reduce errors';
       return 'Optimizing text size for better readability';
     
-    case 'contrast':
+    case 'contrast_mode':
       if (metrics.avgTimeToClick > 3000) return 'Improving visibility to speed up interactions';
       if (metrics.errorCount > 1) return 'Enhancing contrast to reduce errors';
       return 'Optimizing contrast for better visibility';
@@ -131,7 +131,8 @@ function getOptimizationReason(parameter, metrics) {
       if (metrics.avgTimeToClick > 3000) return 'Adjusting theme for better visibility';
       return 'Optimizing theme based on usage patterns';
     
-    case 'spacing':
+    case 'element_spacing_x':
+    case 'element_spacing_y':
       if (metrics.rageClickCount > 1) return 'Increasing spacing to reduce frustration';
       return 'Optimizing element spacing for better interaction';
     
@@ -249,11 +250,11 @@ router.post('/analyze-and-optimize', async (req, res) => {
       const parametersToOptimize = [];
       
       if (issueDetected.type === 'rage_clicks' || issueDetected.type === 'misclicks') {
-        parametersToOptimize.push('targetSize', 'spacing');
+        parametersToOptimize.push('target_size', 'element_spacing_x');
       } else if (issueDetected.type === 'errors') {
-        parametersToOptimize.push('fontSize', 'contrast');
+        parametersToOptimize.push('font_size', 'contrast_mode');
       } else if (issueDetected.type === 'slow_interaction') {
-        parametersToOptimize.push('contrast', 'theme');
+        parametersToOptimize.push('contrast_mode', 'theme');
       }
 
       // Get RL suggestions
@@ -284,7 +285,7 @@ router.post('/analyze-and-optimize', async (req, res) => {
         });
 
         try {
-          await axios.post(`http://localhost:5000/api/manual-settings/apply`, {
+          await axios.post(`${process.env.API_URL}/manual-settings/apply`, {
             userId,
             settings: settingsToApply
           });

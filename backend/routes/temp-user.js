@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const PYTHON_RL_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
+const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
 /**
  * POST /api/temp-user/check
