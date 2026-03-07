@@ -23,22 +23,47 @@ const userSchema = new mongoose.Schema({
   
   // Current active settings
   currentSettings: {
-    fontSize: { type: String, default: 'medium' },
-    lineHeight: { type: Number, default: 1.5 },
+    font_size: { type: Number, default: 16 },
+    line_height: { type: Number, default: 1.5 },
     theme: { type: String, default: 'light' },
-    contrastMode: { type: String, default: 'normal' },
-    elementSpacing: { type: String, default: 'normal' },
-    targetSize: { type: Number, default: 32 }
+    contrast_mode: { type: String, default: 'normal' },
+    element_spacing_x: { type: Number, default: 8 },
+    element_spacing_y: { type: Number, default: 8 },
+    element_padding_x: { type: Number, default: 8 },
+    element_padding_y: { type: Number, default: 8 },
+    target_size: { type: Number, default: 32 },
+    reduced_motion: { type: Boolean, default: false },
+    tooltip_assist: { type: Boolean, default: false },
+    layout_simplification: { type: Boolean, default: false },
+    // Theme colors
+    primary_color: { type: String, default: '#007bff' },
+    primary_color_content: { type: String, default: '#ffffff' },
+    secondary_color: { type: String, default: '#6c757d' },
+    secondary_color_content: { type: String, default: '#ffffff' },
+    accent_color: { type: String, default: '#28a745' },
+    accent_color_content: { type: String, default: '#ffffff' }
   },
   
   // RL Suggested settings (auto-applied from RL model)
   rlSuggestedSettings: {
-    fontSize: { type: String },
-    lineHeight: { type: Number },
+    font_size: { type: Number },
+    line_height: { type: Number },
     theme: { type: String },
-    contrastMode: { type: String },
-    elementSpacing: { type: String },
-    targetSize: { type: Number },
+    contrast_mode: { type: String },
+    element_spacing_x: { type: Number },
+    element_spacing_y: { type: Number },
+    element_padding_x: { type: Number },
+    element_padding_y: { type: Number },
+    target_size: { type: Number },
+    reduced_motion: { type: Boolean },
+    tooltip_assist: { type: Boolean },
+    layout_simplification: { type: Boolean },
+    primary_color: { type: String },
+    primary_color_content: { type: String },
+    secondary_color: { type: String },
+    secondary_color_content: { type: String },
+    accent_color: { type: String },
+    accent_color_content: { type: String },
     lastUpdated: { type: Date }
   },
   
@@ -155,7 +180,7 @@ const settingsHistorySchema = new mongoose.Schema({
     newValue: { type: mongoose.Schema.Types.Mixed, required: true },
     source: { 
       type: String, 
-      enum: ['rl_optimization', 'user_manual', 'ml_profile', 'reset', 'undo', 'redo'],
+      enum: ['rl_optimization', 'user_manual', 'ml_profile', 'reset', 'undo', 'redo', 'user_revert'],
       required: true 
     }
   },
@@ -368,18 +393,26 @@ const manualSettingsSchema = new mongoose.Schema({
   },
   
   // UI Settings
-  fontSize: { type: String, default: '16px' },
-  lineHeight: { type: Number, default: 1.5 },
-  contrast: { type: String, default: 'normal' }, // normal, high
-  spacing: { type: String, default: 'normal' }, // compact, normal, wide
-  targetSize: { type: String, default: '44px' },
+  font_size: { type: Number, default: 16 },
+  line_height: { type: Number, default: 1.5 },
+  contrast_mode: { type: String, default: 'normal' }, // normal, high
+  element_spacing_x: { type: Number, default: 8 },
+  element_spacing_y: { type: Number, default: 8 },
+  element_padding_x: { type: Number, default: 8 },
+  element_padding_y: { type: Number, default: 8 },
+  target_size: { type: Number, default: 44 },
   theme: { type: String, default: 'light' }, // light, dark
-  reducedMotion: { type: Boolean, default: false },
+  reduced_motion: { type: Boolean, default: false },
+  tooltip_assist: { type: Boolean, default: false },
+  layout_simplification: { type: Boolean, default: false },
   
   // Colors
-  primaryColor: { type: String, default: '#007bff' },
-  secondaryColor: { type: String, default: '#6c757d' },
-  accentColor: { type: String, default: '#28a745' },
+  primary_color: { type: String, default: '#007bff' },
+  primary_color_content: { type: String, default: '#ffffff' },
+  secondary_color: { type: String, default: '#6c757d' },
+  secondary_color_content: { type: String, default: '#ffffff' },
+  accent_color: { type: String, default: '#28a745' },
+  accent_color_content: { type: String, default: '#ffffff' },
   
   // Metadata
   createdAt: { type: Date, default: Date.now },
@@ -474,11 +507,13 @@ const trialSchema = new mongoose.Schema({
     default: 'pending'
   },
   
+  promptedAt: Date,
+  
   // Explicit feedback if prompt shown
   feedback: {
     given: { type: Boolean, default: false },
-    type: { type: String, enum: ['like', 'dislike'] },
-    reason: { type: String, enum: ['too_big', 'too_small', 'other', 'dismiss'] },
+    type: { type: String, enum: ['like', 'dislike', 'manual'] },
+    reason: { type: String, enum: ['too_big', 'too_small', 'other', 'dismiss', 'manual'] },
     timestamp: Date
   },
   

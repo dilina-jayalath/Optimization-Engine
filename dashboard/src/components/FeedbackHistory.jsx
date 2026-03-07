@@ -99,19 +99,19 @@ function FeedbackHistory({ userId, refreshKey }) {
 
   const getFeedbackIcon = (type) => {
     switch (type) {
-      case 'positive': return '😊';
-      case 'negative': return '😞';
-      case 'neutral': return '😐';
-      default: return '💬';
+      case 'positive': return '';
+      case 'negative': return '';
+      case 'neutral': return '';
+      default: return '';
     }
   };
 
   const getStatusBadge = (status) => {
     const badges = {
-      applied: { class: 'badge-success', text: 'Applied', icon: '✓' },
+      applied: { class: 'badge-success', text: 'Applied', icon: '' },
       pending: { class: 'badge-warning', text: 'Pending', icon: '⏳' },
-      acknowledged: { class: 'badge-info', text: 'Acknowledged', icon: '👀' },
-      ignored: { class: 'badge-error', text: 'Ignored', icon: '✕' }
+      acknowledged: { class: 'badge-info', text: 'Acknowledged', icon: '' },
+      ignored: { class: 'badge-error', text: 'Ignored', icon: '' }
     };
     return badges[status] || badges.acknowledged;
   };
@@ -126,7 +126,7 @@ function FeedbackHistory({ userId, refreshKey }) {
   };
 
   const getRatingStars = (rating) => {
-    return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
+    return ''.repeat(rating) + ''.repeat(5 - rating);
   };
 
   const formatDate = (timestamp) => {
@@ -180,7 +180,7 @@ function FeedbackHistory({ userId, refreshKey }) {
         </div>
         <div className="card bg-base-200 shadow">
           <div className="card-body p-4 text-center">
-            <div className="text-3xl font-bold text-warning">⭐ {stats.avgRating}</div>
+            <div className="text-3xl font-bold text-warning"> {stats.avgRating}</div>
             <div className="text-sm opacity-70">Avg Rating</div>
           </div>
         </div>
@@ -207,19 +207,19 @@ function FeedbackHistory({ userId, refreshKey }) {
               className="bg-success flex items-center justify-center text-xs font-semibold text-success-content"
               style={{ width: `${(stats.positive / stats.total) * 100}%` }}
             >
-              {stats.positive > 0 && `${stats.positive} 😊`}
+              {stats.positive > 0 && `${stats.positive} `}
             </div>
             <div 
               className="bg-warning flex items-center justify-center text-xs font-semibold text-warning-content"
               style={{ width: `${(stats.neutral / stats.total) * 100}%` }}
             >
-              {stats.neutral > 0 && `${stats.neutral} 😐`}
+              {stats.neutral > 0 && `${stats.neutral} `}
             </div>
             <div 
               className="bg-error flex items-center justify-center text-xs font-semibold text-error-content"
               style={{ width: `${(stats.negative / stats.total) * 100}%` }}
             >
-              {stats.negative > 0 && `${stats.negative} 😞`}
+              {stats.negative > 0 && `${stats.negative} `}
             </div>
           </div>
         </div>
@@ -264,7 +264,7 @@ function FeedbackHistory({ userId, refreshKey }) {
                 {feedback.optimization && (
                   <div>
                     <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
-                      <span>⚡</span> Optimization Applied
+                      <span></span> Optimization Applied
                     </h4>
                     <div className="bg-base-100 p-2 rounded">
                       <div className="flex items-center gap-2 text-sm">

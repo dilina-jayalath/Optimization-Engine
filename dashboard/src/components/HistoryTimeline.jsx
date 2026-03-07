@@ -4,7 +4,7 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
   if (history.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-6xl mb-4">📝</div>
+        <div className="text-6xl mb-4"></div>
         <h3 className="text-xl font-semibold mb-2">No changes yet</h3>
         <p className="text-base-content/60">Your change history will appear here</p>
       </div>
@@ -13,9 +13,9 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
 
   const getSourceBadge = (source) => {
     const badges = {
-      ml: { class: 'badge-primary', icon: '🤖', label: 'ML' },
-      manual: { class: 'badge-secondary', icon: '✋', label: 'Manual' },
-      system: { class: 'badge-accent', icon: '⚙️', label: 'System' }
+      ml: { class: 'badge-primary', icon: '', label: 'ML' },
+      manual: { class: 'badge-secondary', icon: '', label: 'Manual' },
+      system: { class: 'badge-accent', icon: '️', label: 'System' }
     };
     const badge = badges[source] || badges.system;
     return <span className={`badge ${badge.class} gap-1`}>{badge.icon} {badge.label}</span>;
@@ -33,7 +33,7 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
 
   const getChangedSettings = (current, previous) => {
     if (!previous) return Object.keys(current);
-    
+
     return Object.keys(current).filter(key => {
       return JSON.stringify(current[key]) !== JSON.stringify(previous[key]);
     });
@@ -43,13 +43,13 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
       {history.map((item, index) => {
         const isCurrent = index === currentIndex;
-        const changedSettings = index > 0 
+        const changedSettings = index > 0
           ? getChangedSettings(item.settings, history[index - 1].settings)
           : Object.keys(item.settings);
 
         return (
-          <div 
-            key={item.id} 
+          <div
+            key={item.id}
             className={`card ${isCurrent ? 'bg-primary/10 border-2 border-primary' : 'bg-base-200'} shadow-md hover:shadow-lg transition-all`}
           >
             <div className="card-body p-4">
@@ -109,7 +109,7 @@ function HistoryTimeline({ history, currentIndex, onRevert }) {
                   </button>
                 ) : (
                   <div className="alert alert-success py-2">
-                    <span className="text-sm">✓ Current State</span>
+                    <span className="text-sm"> Current State</span>
                   </div>
                 )}
               </div>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -231,11 +232,11 @@
       border-radius: 50%;
     }
 
-    input:checked + .slider {
+    input:checked+.slider {
       background-color: #667eea;
     }
 
-    input:checked + .slider:before {
+    input:checked+.slider:before {
       transform: translateX(24px);
     }
 
@@ -335,8 +336,15 @@
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
 
     .notification {
@@ -359,6 +367,7 @@
         transform: translateX(400px);
         opacity: 0;
       }
+
       to {
         transform: translateX(0);
         opacity: 1;
@@ -378,12 +387,13 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="header">
       <h1>🎨 UI Settings Dashboard</h1>
       <p>Customize your interface or let AI personalize it for you</p>
-      
+
       <div class="mode-toggle">
         <div class="mode-button active" id="aiModeBtn">
           <h3>🤖 AI Mode</h3>
@@ -399,7 +409,7 @@
     <div class="dashboard" id="manualSettings" style="display: none;">
       <div class="panel">
         <h2>📝 Typography</h2>
-        
+
         <div class="setting-group">
           <label class="setting-label">Font Size</label>
           <p class="setting-description">Base text size for all content</p>
@@ -417,7 +427,7 @@
 
       <div class="panel">
         <h2>🎨 Colors & Theme</h2>
-        
+
         <div class="setting-group">
           <label class="setting-label">Theme</label>
           <select id="theme">
@@ -452,7 +462,7 @@
 
       <div class="panel">
         <h2>📏 Layout</h2>
-        
+
         <div class="setting-group">
           <label class="setting-label">Element Spacing</label>
           <select id="spacing">
@@ -472,7 +482,7 @@
 
       <div class="panel">
         <h2>♿ Accessibility</h2>
-        
+
         <div class="setting-group">
           <label class="setting-label">Reduced Motion</label>
           <p class="setting-description">Minimize animations and transitions</p>
@@ -489,7 +499,7 @@
           <div class="preview-text">
             <h3 style="margin-bottom: 12px;">Preview Heading</h3>
             <p style="margin-bottom: 16px;">
-              This is how your text will look with the current settings. 
+              This is how your text will look with the current settings.
               Lorem ipsum dolor sit amet, consectetur adipiscing elit.
             </p>
           </div>
@@ -512,7 +522,8 @@
   </div>
 
   <script>
-    const API_URL = 'http://localhost:5000/api';
+    // Determine relative API URL when running under the same origin
+    const API_URL = window.location.origin + '/api';
     const USER_ID = 'guest'; // In production, get from auth
 
     let currentMode = 'ai';
@@ -539,7 +550,7 @@
 
     function switchMode(mode) {
       currentMode = mode;
-      
+
       document.getElementById('aiModeBtn').classList.toggle('active', mode === 'ai');
       document.getElementById('manualModeBtn').classList.toggle('active', mode === 'manual');
       document.getElementById('manualSettings').style.display = mode === 'manual' ? 'grid' : 'none';
@@ -566,16 +577,17 @@
     }
 
     function applySettings(settingsData) {
-      document.getElementById('fontSize').value = parseInt(settingsData.fontSize);
-      document.getElementById('lineHeight').value = settingsData.lineHeight;
-      document.getElementById('theme').value = settingsData.theme;
-      document.getElementById('contrast').value = settingsData.contrast;
-      document.getElementById('primaryColor').value = settingsData.primaryColor;
-      document.getElementById('secondaryColor').value = settingsData.secondaryColor;
-      document.getElementById('accentColor').value = settingsData.accentColor;
-      document.getElementById('spacing').value = settingsData.spacing;
-      document.getElementById('targetSize').value = parseInt(settingsData.targetSize);
-      document.getElementById('reducedMotion').checked = settingsData.reducedMotion;
+      document.getElementById('fontSize').value = parseInt(settingsData.font_size || settingsData.fontSize || 16);
+      document.getElementById('lineHeight').value = settingsData.line_height || settingsData.lineHeight || 1.5;
+      document.getElementById('theme').value = settingsData.theme || 'light';
+      document.getElementById('contrast').value = settingsData.contrast_mode || settingsData.contrast || 'normal';
+      document.getElementById('primaryColor').value = settingsData.primary_color || settingsData.primaryColor || '#007bff';
+      document.getElementById('secondaryColor').value = settingsData.secondary_color || settingsData.secondaryColor || '#6c757d';
+      document.getElementById('accentColor').value = settingsData.accent_color || settingsData.accentColor || '#28a745';
+      const spacingValue = settingsData.element_spacing_x || 8;
+      document.getElementById('spacing').value = spacingValue <= 4 ? 'compact' : spacingValue >= 12 ? 'wide' : 'normal';
+      document.getElementById('targetSize').value = parseInt(settingsData.target_size || settingsData.targetSize || 44);
+      document.getElementById('reducedMotion').checked = settingsData.reduced_motion || settingsData.reducedMotion || false;
 
       updatePreview();
     }
@@ -601,7 +613,7 @@
       preview.style.lineHeight = lineHeight;
       preview.style.background = theme === 'dark' ? '#1a202c' : 'white';
       preview.style.color = theme === 'dark' ? 'white' : '#1a202c';
-      
+
       button.style.background = primaryColor;
       button.style.color = 'white';
       button.style.minHeight = targetSize;
@@ -615,18 +627,22 @@
     async function saveSettings() {
       if (currentMode !== 'manual') return;
 
+      const spacingVal = document.getElementById('spacing').value;
+      const spacingPx = spacingVal === 'compact' ? 6 : spacingVal === 'wide' ? 12 : 8;
+
       const settings = {
         enabled: true,
-        fontSize: document.getElementById('fontSize').value + 'px',
-        lineHeight: parseFloat(document.getElementById('lineHeight').value),
+        font_size: parseInt(document.getElementById('fontSize').value),
+        line_height: parseFloat(document.getElementById('lineHeight').value),
         theme: document.getElementById('theme').value,
-        contrast: document.getElementById('contrast').value,
-        primaryColor: document.getElementById('primaryColor').value,
-        secondaryColor: document.getElementById('secondaryColor').value,
-        accentColor: document.getElementById('accentColor').value,
-        spacing: document.getElementById('spacing').value,
-        targetSize: document.getElementById('targetSize').value + 'px',
-        reducedMotion: document.getElementById('reducedMotion').checked,
+        contrast_mode: document.getElementById('contrast').value,
+        primary_color: document.getElementById('primaryColor').value,
+        secondary_color: document.getElementById('secondaryColor').value,
+        accent_color: document.getElementById('accentColor').value,
+        element_spacing_x: spacingPx,
+        element_spacing_y: spacingPx,
+        target_size: parseInt(document.getElementById('targetSize').value),
+        reduced_motion: document.getElementById('reducedMotion').checked,
       };
 
       try {
@@ -637,10 +653,10 @@
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
           showNotification('Settings saved successfully!', 'success');
-          document.getElementById('lastSaved').textContent = 
+          document.getElementById('lastSaved').textContent =
             `Last saved: ${new Date().toLocaleTimeString()}`;
         }
       } catch (error) {
@@ -670,7 +686,7 @@
     function showNotification(message, type = 'success') {
       const notification = document.getElementById('notification');
       const text = document.getElementById('notificationText');
-      
+
       text.textContent = message;
       notification.className = `notification ${type} show`;
 
@@ -680,4 +696,5 @@
     }
   </script>
 </body>
+
 </html>

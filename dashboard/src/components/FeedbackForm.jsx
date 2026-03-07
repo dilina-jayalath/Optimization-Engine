@@ -10,18 +10,18 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
     rating: 5,
     feedbackType: 'positive',
     comment: '',
-    parameter: 'targetSize',
+    parameter: 'target_size',
     currentValue: null
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Get current value based on parameter
       const currentValue = formData.currentValue || getCurrentValue(formData.parameter);
-      
+
       // NEW SIMPLIFIED FORMAT - Send current value + feedback, RL predicts next
       const feedbackData = {
         parameter: formData.parameter,
@@ -42,24 +42,24 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
         }
       };
 
-      console.log('📤 Submitting feedback:', feedbackData);
+      console.log(' Submitting feedback:', feedbackData);
       const result = await submitFeedback(userId, feedbackData);
-      console.log('📥 Received result:', result);
-      
+      console.log(' Received result:', result);
+
       // Auto-apply RL suggestion if available
       if (result.data?.nextSuggestion) {
         const suggestion = result.data.nextSuggestion;
-        console.log('✨ Auto-applying RL suggestion:', suggestion.suggestedValue);
-        
+        console.log(' Auto-applying RL suggestion:', suggestion.suggestedValue);
+
         // First update local settings for immediate feedback
         updateSetting(formData.parameter, suggestion.suggestedValue);
-        
+
         // Then reload from backend to ensure we have the latest RL suggestions
         setTimeout(async () => {
           await reloadSettings();
-          console.log('🔄 Reloaded settings from backend');
+          console.log(' Reloaded settings from backend');
         }, 500);
-        
+
         // Show success message with what was changed
         if (onSettingsUpdate) {
           onSettingsUpdate({
@@ -69,9 +69,9 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
           });
         }
       }
-      
+
       closeAndReset();
-      
+
       // Notify parent component
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted(result);
@@ -82,19 +82,19 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
       setIsSubmitting(false);
     }
   };
-  
+
   const getCurrentValue = (parameter) => {
     // Return current value from global settings
     return settings[parameter] || formData.currentValue;
   };
-  
+
   const getDeviceType = () => {
     const width = window.innerWidth;
     if (width < 768) return 'mobile';
     if (width < 1024) return 'tablet';
     return 'desktop';
   };
-  
+
   const getTimeOfDay = () => {
     const hour = new Date().getHours();
     if (hour < 6) return 'night';
@@ -103,13 +103,13 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
     if (hour < 22) return 'evening';
     return 'night';
   };
-  
+
   const closeAndReset = () => {
     setFormData({
       rating: 5,
       feedbackType: 'positive',
       comment: '',
-      parameter: 'targetSize',
+      parameter: 'target_size',
       currentValue: null
     });
     setIsOpen(false);
@@ -126,20 +126,20 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="btn btn-primary gap-2 shadow-lg"
       >
-        💬 Give Feedback
+        Give Feedback
       </button>
 
       {isOpen && (
         <div className="modal modal-open">
           <div className="modal-box max-w-2xl">
             <h3 className="font-bold text-2xl mb-4 flex items-center gap-2">
-              💬 Share Your Feedback
+              Share Your Feedback
             </h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Rating */}
               <div>
@@ -152,20 +152,19 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                       key={star}
                       type="button"
                       onClick={() => handleRatingChange(star)}
-                      className={`text-5xl transition-transform hover:scale-110 ${
-                        star <= formData.rating ? 'opacity-100' : 'opacity-30'
-                      }`}
+                      className={`text-5xl transition-transform hover:scale-110 ${star <= formData.rating ? 'opacity-100' : 'opacity-30'
+                        }`}
                     >
-                      {star <= formData.rating ? '⭐' : '☆'}
+                      {star <= formData.rating ? '' : ''}
                     </button>
                   ))}
                 </div>
                 <div className="text-center text-sm opacity-70">
-                  {formData.rating === 5 && '😊 Excellent!'}
-                  {formData.rating === 4 && '😃 Good!'}
-                  {formData.rating === 3 && '😐 Okay'}
-                  {formData.rating === 2 && '😕 Could be better'}
-                  {formData.rating === 1 && '😞 Needs improvement'}
+                  {formData.rating === 5 && ' Excellent!'}
+                  {formData.rating === 4 && ' Good!'}
+                  {formData.rating === 3 && ' Okay'}
+                  {formData.rating === 2 && ' Could be better'}
+                  {formData.rating === 1 && ' Needs improvement'}
                 </div>
               </div>
 
@@ -180,21 +179,21 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                     className={`btn join-item flex-1 ${formData.feedbackType === 'positive' ? 'btn-success' : 'btn-outline'}`}
                     onClick={() => setFormData(prev => ({ ...prev, feedbackType: 'positive' }))}
                   >
-                    😊 Positive
+                    Positive
                   </button>
                   <button
                     type="button"
                     className={`btn join-item flex-1 ${formData.feedbackType === 'neutral' ? 'btn-warning' : 'btn-outline'}`}
                     onClick={() => setFormData(prev => ({ ...prev, feedbackType: 'neutral' }))}
                   >
-                    😐 Neutral
+                    Neutral
                   </button>
                   <button
                     type="button"
                     className={`btn join-item flex-1 ${formData.feedbackType === 'negative' ? 'btn-error' : 'btn-outline'}`}
                     onClick={() => setFormData(prev => ({ ...prev, feedbackType: 'negative' }))}
                   >
-                    😞 Negative
+                    Negative
                   </button>
                 </div>
               </div>
@@ -209,15 +208,15 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                   value={formData.parameter}
                   onChange={(e) => setFormData(prev => ({ ...prev, parameter: e.target.value, currentValue: null }))}
                 >
-                  <option value="targetSize">🎯 Button Size</option>
-                  <option value="fontSize">🔤 Font Size</option>
-                  <option value="lineHeight">📏 Line Height</option>
-                  <option value="theme">🎨 Theme (Light/Dark)</option>
-                  <option value="contrastMode">🔆 Contrast Mode</option>
-                  <option value="elementSpacing">↔️ Element Spacing</option>
+                  <option value="target_size"> Button Size</option>
+                  <option value="font_size"> Font Size</option>
+                  <option value="line_height"> Line Height</option>
+                  <option value="theme"> Theme (Light/Dark)</option>
+                  <option value="contrast_mode"> Contrast Mode</option>
+                  <option value="element_spacing_x">↔️ Element Spacing</option>
                 </select>
               </div>
-              
+
               {/* Current Value */}
               <div>
                 <label className="label">
@@ -227,7 +226,7 @@ function FeedbackForm({ userId, onFeedbackSubmitted, onSettingsUpdate }) {
                   <div className="flex-1">
                     <span>Current {formData.parameter}: <strong className="text-lg">{formData.currentValue || getCurrentValue(formData.parameter)}</strong></span>
                     <div className="text-xs mt-1 opacity-70">
-                      ✨ This value is applied to the entire dashboard
+                      This value is applied to the entire dashboard
                     </div>
                   </div>
                 </div>

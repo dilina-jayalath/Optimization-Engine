@@ -39,7 +39,7 @@ function ComparisonView({ currentSettings, previousSettings }) {
           <div className="card bg-primary/10 border-2 border-primary">
             <div className="card-body p-4">
               <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <span className="text-success">✓</span> Current
+                <span className="text-success"></span> Current
               </h4>
               <div className="space-y-2">
                 {settingKeys.map(key => {
@@ -58,7 +58,7 @@ function ComparisonView({ currentSettings, previousSettings }) {
                         <span className={`badge ${isChanged ? 'badge-success' : 'badge-ghost'}`}>
                           {String(currentSettings[key])}
                         </span>
-                        {isChanged && <span className="text-lg">✨</span>}
+                        {isChanged && <span className="text-lg"></span>}
                       </div>
                     </div>
                   );

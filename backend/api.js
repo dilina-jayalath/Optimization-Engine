@@ -21,10 +21,10 @@ const app = express();
 const dbService = new RLMongoDBService();
 
 // Python DQN Service URL
-const PYTHON_RL_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
+const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 // Import Week 1 routes
@@ -34,14 +34,26 @@ const { router: profilesRouter } = require('./routes/profiles');
 const feedbackRouter = require('./routes/feedback');
 const manualSettingsRouter = require('./routes/manual-settings');
 const trialsRouter = require('./routes/trials');
+const { router: settingsEventsRouter, broadcastSettingsUpdate } = require('./routes/settings-events');
+const rlFeedbackRouter = require('./routes/rl-feedback');
+const userCategorizationRouter = require('./routes/user-categorization');
+const behaviorRlOptimizationRouter = require('./routes/behavior-rl-optimization');
+const tempUserRouter = require('./routes/temp-user');
 
 // Mount Week 1 routes
 app.use('/api/behavior', behaviorRouter);
+app.use('/api/behavior-rl', behaviorRlOptimizationRouter);
+app.use('/api/temp-user', tempUserRouter);
 app.use('/api/personalization', personalizationRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/manual-settings', manualSettingsRouter);
 app.use('/api/trials', trialsRouter);
+app.use('/api/settings-events', settingsEventsRouter);
+// Also mount at /api/settings/events so the NPM package SSE hook can find it
+app.use('/api/settings/events', settingsEventsRouter);
+app.use('/api/rl-feedback', rlFeedbackRouter);
+app.use('/api/user-categorization', userCategorizationRouter);
 
 // Serve static dashboard files
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
@@ -93,10 +105,73 @@ app.post('/api/users/:userId/settings', async (req, res) => {
       success: true
     });
     
+    // Broadcast update
+    broadcastSettingsUpdate(userId, updatedSettings, source);
+    
     res.json({
       success: true,
       data: updatedSettings
     });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =====================================================
+// NPM PACKAGE COMPATIBILITY ROUTES
+// The @aura/aura-adaptor NPM package expects /api/settings/:userId
+// while the dashboard uses /api/users/:userId/settings.
+// These aliases bridge the two so NovaCart picks up dashboard changes.
+// =====================================================
+
+/**
+ * GET /api/settings/:userId
+ * Returns the user's current settings (used by useUserSettingsStore on init)
+ */
+app.get('/api/settings/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await dbService.getUser(userId);
+    res.json({
+      found: true,
+      profile: user.currentSettings || {}
+    });
+  } catch (error) {
+    // User not found → no stored settings yet
+    res.json({ found: false, profile: null });
+  }
+});
+
+/**
+ * POST /api/settings/:userId
+ * Persists a settings patch and broadcasts via SSE
+ * (used by useUserSettingsStore.updateSettings)
+ */
+app.post('/api/settings/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { settings, source = 'dashboard' } = req.body;
+
+    const updatedSettings = await dbService.updateUserSettings(userId, settings, source);
+
+    // Broadcast so every SSE-connected tab (including NovaCart) gets the update
+    broadcastSettingsUpdate(userId, updatedSettings, source);
+
+    res.json({ success: true, data: updatedSettings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/settings/:userId/ml-sync
+ * End-of-day ML sync (used by useUserSettingsStore)
+ */
+app.post('/api/settings/:userId/ml-sync', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    // For now, acknowledge the sync request
+    res.json({ success: true, sent: 0 });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -123,6 +198,32 @@ app.post('/api/users/:userId/ml-profile', async (req, res) => {
       profileType: 'ml',
       success: true
     });
+    
+    // Broadcast update - convert ML profile to flat settings for frontend
+    const flatSettings = {
+      fontSize: mlProfile.mergedProfile.font_size,
+      theme: mlProfile.mergedProfile.theme,
+      // ... map other fields if needed, or send full profile if frontend handles it
+    };
+    // For now, let's assume frontend refreshes or we explicitly broadcast what changed
+    // Actually best to assume AdaptiveProvider re-fetches or we send a "reload" signal
+    // But broadcastSettingsUpdate expects settings object.
+    
+    // Let's just broadcast the merged profile properties that match settings
+    broadcastSettingsUpdate(userId, {
+        fontSize: mlProfile.mergedProfile.font_size,
+        theme: mlProfile.mergedProfile.theme,
+        contrast: mlProfile.mergedProfile.contrast_mode,
+        lineHeight: mlProfile.mergedProfile.line_height,
+        primaryColor: mlProfile.mergedProfile.primary_color,
+        secondaryColor: mlProfile.mergedProfile.secondary_color,
+        accentColor: mlProfile.mergedProfile.accent_color,
+        reducedMotion: mlProfile.mergedProfile.reduced_motion,
+        spacing: mlProfile.mergedProfile.element_spacing,
+        targetSize: mlProfile.mergedProfile.target_size,
+        tooltipAssist: mlProfile.mergedProfile.tooltip_assist,
+        layoutSimplification: mlProfile.mergedProfile.layout_simplification
+    }, 'ml');
     
     res.json({
       success: true,
@@ -289,12 +390,12 @@ app.post('/api/users/:userId/reset', async (req, res) => {
     const { userId } = req.params;
     
     const defaultSettings = {
-      fontSize: 'medium',
-      lineHeight: 1.5,
+      font_size: 16,
+      line_height: 1.5,
       theme: 'light',
-      contrastMode: 'normal',
-      elementSpacing: 'normal',
-      targetSize: 32
+      contrast_mode: 'normal',
+      element_spacing: 8,
+      target_size: 32
     };
     
     const updatedSettings = await dbService.updateUserSettings(
@@ -472,7 +573,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       state = req.body.state;
     }
     
-    console.log('📥 Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
+    console.log(' Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
     
     // Calculate enhanced reward based on feedback
     const reward = calculateEnhancedReward(feedback, context);
@@ -522,12 +623,12 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       }, { timeout: 5000 });
       
       rlTrainingResult = dqnResponse.data;
-      console.log('🧠 DQN Training:', { loss: rlTrainingResult.loss, qValue: rlTrainingResult.qValue });
+      console.log(' DQN Training:', { loss: rlTrainingResult.loss, qValue: rlTrainingResult.qValue });
     } catch (dqnError) {
       console.error('DQN service error (non-blocking):', dqnError.message);
     }
     
-    // 🎯 RL PREDICTS NEXT VALUE (KEY FEATURE)
+    //  RL PREDICTS NEXT VALUE (KEY FEATURE)
     const nextSuggestion = await getNextSuggestion(
       userId,
       parameter,
@@ -535,7 +636,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       feedback.type
     );
     
-    console.log('💡 RL Suggested:', nextSuggestion?.suggestedValue);
+    console.log(' RL Suggested:', nextSuggestion?.suggestedValue);
     
     // Auto-apply RL suggestion to user settings
     let updatedSettings = null;
@@ -555,7 +656,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
         return user.save();
       });
       
-      console.log(`✅ Auto-applied RL suggestion: ${parameter} = ${nextSuggestion.suggestedValue}`);
+      console.log(` Auto-applied RL suggestion: ${parameter} = ${nextSuggestion.suggestedValue}`);
     }
     
     // Log event
@@ -575,7 +676,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
         currentValue: currentValue,
         updatedSettings: updatedSettings,
         
-        // 🎯 RL-PREDICTED Next suggestion
+        //  RL-PREDICTED Next suggestion
         nextSuggestion: nextSuggestion ? {
           parameter: nextSuggestion.parameter,
           currentValue: nextSuggestion.currentValue,
@@ -689,32 +790,52 @@ async function getNextSuggestion(userId, parameter, currentState, feedbackType) 
  */
 function getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbackType) {
   const reasons = {
-    targetSize: {
-      increase: "Making buttons larger for easier interaction",
-      decrease: "Making buttons more compact",
-      same: "Button size seems optimal"
+    target_size: {
+      increase: "Making targets easier to tap based on misclicks",
+      decrease: "Optimizing screen space while maintaining usability",
+      same: "Target sizes seem optimal for your usage"
     },
-    fontSize: {
-      increase: "Increasing text size for better readability",
-      decrease: "Making text more compact",
-      same: "Text size seems perfect"
+    font_size: {
+      increase: "Increasing text size to improve readability",
+      decrease: "Optimizing text density for your reading speed",
+      same: "Current font size appears comfortable"
     },
-    lineHeight: {
-      increase: "Increasing line spacing for better readability",
-      decrease: "Making content more compact",
+    line_height: {
+      increase: "Adding more space between lines for better tracking",
+      decrease: "Condensing text to fit more content on screen",
       same: "Line spacing seems optimal"
     },
     theme: {
-      change: "Trying a different theme that might suit you better",
-      same: "Current theme seems to work well"
+      change: "Switching theme to reduce eye strain based on time/usage",
+      same: "Current theme seems comfortable"
     },
-    contrastMode: {
+    contrast_mode: {
       change: "Adjusting contrast for better visibility",
       same: "Contrast level seems appropriate"
     },
-    elementSpacing: {
-      change: "Adjusting element spacing for better layout",
-      same: "Spacing seems comfortable"
+    element_spacing_x: {
+      increase: "Adding more horizontal space for better layout",
+      decrease: "Compacting horizontal space to fit more",
+      same: "Horizontal spacing seems comfortable",
+      change: "Adjusting horizontal spacing"
+    },
+    element_spacing_y: {
+      increase: "Adding more vertical space for better layout",
+      decrease: "Compacting vertical space to fit more",
+      same: "Vertical spacing seems comfortable",
+      change: "Adjusting vertical spacing"
+    },
+    element_padding_x: {
+      increase: "Adding more horizontal padding",
+      decrease: "Reducing horizontal padding",
+      same: "Padding seems comfortable",
+      change: "Adjusting horizontal padding"
+    },
+    element_padding_y: {
+      increase: "Adding more vertical padding",
+      decrease: "Reducing vertical padding",
+      same: "Padding seems comfortable",
+      change: "Adjusting vertical padding"
     }
   };
   
@@ -728,7 +849,7 @@ function getReasonForSuggestion(parameter, currentValue, suggestedValue, feedbac
 function getDirection(parameter, oldVal, newVal) {
   if (oldVal === newVal) return 'same';
   
-  const numericParams = ['targetSize', 'lineHeight'];
+  const numericParams = ['target_size', 'line_height', 'font_size', 'element_spacing_x', 'element_spacing_y', 'element_padding_x', 'element_padding_y'];
   if (numericParams.includes(parameter)) {
     const oldNum = typeof oldVal === 'number' ? oldVal : parseFloat(oldVal) || 0;
     const newNum = typeof newVal === 'number' ? newVal : parseFloat(newVal) || 0;
@@ -736,8 +857,7 @@ function getDirection(parameter, oldVal, newVal) {
   }
   
   const ordinalParams = {
-    fontSize: ['small', 'medium', 'large', 'x-large'],
-    elementSpacing: ['compact', 'normal', 'wide']
+    // contrast_mode doesn't technically go up/down in a clean scale, but could be added
   };
   
   if (ordinalParams[parameter]) {
@@ -760,12 +880,15 @@ function getRuleBasedSuggestion(parameter, currentState, feedbackType) {
   
   // Define progression paths
   const progressions = {
-    targetSize: [24, 28, 32, 36, 40, 44],
-    fontSize: ['small', 'medium', 'large', 'x-large'],
-    lineHeight: [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
+    target_size: [24, 28, 32, 36, 40, 44, 48, 52, 60],
+    font_size: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 28, 32],
+    line_height: [1.2, 1.4, 1.5, 1.6, 1.8, 2.0],
     theme: ['light', 'dark', 'auto'],
-    contrastMode: ['normal', 'high'],
-    elementSpacing: ['compact', 'normal', 'wide']
+    contrast_mode: ['normal', 'high'],
+    element_spacing_x: [2, 4, 6, 8, 10, 12, 16],
+    element_spacing_y: [2, 4, 6, 8, 10, 12, 16],
+    element_padding_x: [4, 8, 12, 16, 20, 24],
+    element_padding_y: [4, 8, 12, 16, 20, 24]
   };
   
   const options = progressions[parameter] || [currentValue];
@@ -1267,21 +1390,21 @@ app.use((err, req, res, next) => {
 // =====================================================
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/optimization-engine';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ Connected to MongoDB');
-    console.log(`📊 Database: ${MONGODB_URI.split('/').pop()}`);
+    console.log(' Connected to MongoDB');
+    console.log(` Database: ${MONGODB_URI.split('/').pop()}`);
     app.listen(PORT, () => {
-      console.log(`🚀 API server running on http://localhost:${PORT}`);
-      console.log(`📱 Dashboard: http://localhost:${PORT}/dashboard`);
-      console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(` API server running on http://localhost:${PORT}`);
+      console.log(` Dashboard: http://localhost:${PORT}/dashboard`);
+      console.log(` Health check: http://localhost:${PORT}/api/health`);
     });
   })
   .catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    console.error('💡 Make sure MongoDB is running and MONGODB_URI is correct');
+    console.error(' MongoDB connection error:', err);
+    console.error(' Make sure MongoDB is running and MONGODB_URI is correct');
     process.exit(1);
   });
 

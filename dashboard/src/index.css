@@ -34,3 +34,22 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-neutral;
 }
+
+/* Base glass effect */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+/* Light mode */
+html[data-theme="light"] .glass-effect {
+  background-color: rgba(234, 233, 233, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Dark mode */
+html[data-theme="dark"] .glass-effect {
+  background-color: rgba(0, 0, 0, 0.8); /* slate-900-ish */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
