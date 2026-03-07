@@ -23,28 +23,30 @@ const dbService = new RLMongoDBService();
 // Python DQN Service URL
 const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
-// Extension backend URL (for userId validation)
-const EXTENSION_SERVER_URL = process.env.EXTENSION_SERVER_URL || 'http://localhost:3000';
-
-/**
- * Validate a userId against the Extension backend.
- * Returns true if the user exists, false otherwise.
- */
-async function validateUserWithExtension(userId) {
-  if (!userId || userId === 'guest' || userId === 'anonymous') return false;
-  try {
-    const response = await axios.get(`${EXTENSION_SERVER_URL}/api/auth/validate/${userId}`, { timeout: 3000 });
-    return response.data && response.data.valid === true;
-  } catch (error) {
-    console.warn('[UserValidation] Extension server unreachable, allowing userId:', userId);
-    // Fail-open: if extension server is down, allow the request so the system doesn't break
-    return true;
-  }
-}
+// MongoDB connection for serverless
+const MONGODB_URI = process.env.MONGODB_URI;
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  await mongoose.connect(MONGODB_URI);
+  isConnected = true;
+  console.log('✅ Connected to MongoDB');
+};
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+// Ensure DB is connected before any route handler
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ DB connection error:', err.message);
+    res.status(500).json({ success: false, error: 'Database connection failed' });
+  }
+});
 
 // Import Week 1 routes
 const { router: behaviorRouter } = require('./routes/behavior');
@@ -1459,22 +1461,10 @@ app.use((err, req, res, next) => {
 // =====================================================
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
 
-// Connect to MongoDB (shared across serverless invocations)
-let isConnected = false;
-const connectDB = async () => {
-  if (isConnected) return;
-  await mongoose.connect(MONGODB_URI);
-  isConnected = true;
-  console.log('✅ Connected to MongoDB');
-};
-
-// Start server only when run directly (not on Vercel)
 if (require.main === module) {
-  mongoose.connect(MONGODB_URI)
+  connectDB()
     .then(() => {
-      console.log('✅ Connected to MongoDB');
       console.log(`📊 Database: ${MONGODB_URI.split('/').pop()}`);
       app.listen(PORT, () => {
         console.log(`🚀 API server running on http://localhost:${PORT}`);
@@ -1484,19 +1474,8 @@ if (require.main === module) {
     })
     .catch(err => {
       console.error('❌ MongoDB connection error:', err);
-      console.error('💡 Make sure MongoDB is running and MONGODB_URI is correct');
       process.exit(1);
     });
-} else {
-  // Serverless: connect on first request via middleware
-  app.use(async (req, res, next) => {
-    try {
-      await connectDB();
-      next();
-    } catch (err) {
-      res.status(500).json({ success: false, error: 'Database connection failed' });
-    }
-  });
 }
 
 module.exports = app;
