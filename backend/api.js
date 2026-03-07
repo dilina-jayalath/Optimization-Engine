@@ -1392,20 +1392,42 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log(' Connected to MongoDB');
-    console.log(` Database: ${MONGODB_URI.split('/').pop()}`);
-    app.listen(PORT, () => {
-      console.log(` API server running on http://localhost:${PORT}`);
-      console.log(` Dashboard: http://localhost:${PORT}/dashboard`);
-      console.log(` Health check: http://localhost:${PORT}/api/health`);
+// Connect to MongoDB (shared across serverless invocations)
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  await mongoose.connect(MONGODB_URI);
+  isConnected = true;
+  console.log('✅ Connected to MongoDB');
+};
+
+// Start server only when run directly (not on Vercel)
+if (require.main === module) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => {
+      console.log('✅ Connected to MongoDB');
+      console.log(`📊 Database: ${MONGODB_URI.split('/').pop()}`);
+      app.listen(PORT, () => {
+        console.log(`🚀 API server running on http://localhost:${PORT}`);
+        console.log(`📱 Dashboard: http://localhost:${PORT}/dashboard`);
+        console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+      });
+    })
+    .catch(err => {
+      console.error('❌ MongoDB connection error:', err);
+      console.error('💡 Make sure MongoDB is running and MONGODB_URI is correct');
+      process.exit(1);
     });
-  })
-  .catch(err => {
-    console.error(' MongoDB connection error:', err);
-    console.error(' Make sure MongoDB is running and MONGODB_URI is correct');
-    process.exit(1);
+} else {
+  // Serverless: connect on first request via middleware
+  app.use(async (req, res, next) => {
+    try {
+      await connectDB();
+      next();
+    } catch (err) {
+      res.status(500).json({ success: false, error: 'Database connection failed' });
+    }
   });
+}
 
 module.exports = app;
