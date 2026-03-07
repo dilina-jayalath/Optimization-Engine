@@ -14,12 +14,16 @@ const connections = new Map(); // userId -> Set of response objects
 router.get('/:userId', (req, res) => {
   const { userId } = req.params;
 
+  // Disable request timeout so the SSE stream stays open indefinitely
+  req.setTimeout(0);
+
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  
+  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx buffering if proxied
+  res.flushHeaders(); // flush headers immediately to establish the connection
+
   // Send initial connection message
   res.write('data: {"type":"connected","userId":"' + userId + '"}\n\n');
 
@@ -31,8 +35,14 @@ router.get('/:userId', (req, res) => {
 
   console.log(`[SSE] Client connected for user ${userId} (total: ${connections.get(userId).size})`);
 
+  // Send periodic keepalive comments to prevent proxy/firewall timeouts
+  const keepalive = setInterval(() => {
+    try { res.write(':keepalive\n\n'); } catch { clearInterval(keepalive); }
+  }, 25000);
+
   // Clean up on disconnect
   req.on('close', () => {
+    clearInterval(keepalive);
     const userConnections = connections.get(userId);
     if (userConnections) {
       userConnections.delete(res);

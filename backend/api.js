@@ -493,6 +493,16 @@ app.post('/api/users/:userId/qtables/:parameter/update', async (req, res) => {
     const { userId, parameter } = req.params;
     const { state, action, value } = req.body;
     
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        data: {
+          parameter,
+          totalUpdates: 0
+        }
+      });
+    }
+
     const qTable = await dbService.updateQValue(userId, parameter, state, action, value);
     
     res.json({
@@ -516,6 +526,18 @@ app.get('/api/users/:userId/qtables/:parameter/best-action', async (req, res) =>
     const { userId, parameter } = req.params;
     const { state } = req.query;
     
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        data: {
+          action: 'default', // Fallback guest
+          qValue: 0,
+          epsilon: 1.0,
+          source: 'guest_fallback'
+        }
+      });
+    }
+
     // Try to get recommendation from Python DQN first
     try {
       const user = await dbService.getUser(userId);
@@ -594,7 +616,22 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       state = req.body.state;
     }
     
-    console.log(' Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
+    console.log(` Received feedback for ${userId}:`, { parameter, currentValue, feedbackType: feedback.type });
+
+    if (userId === 'guest') {
+      console.log(' Ignoring feedback for guest user.');
+      return res.json({
+        success: true,
+        data: {
+          feedbackId: 'guest_feedback',
+          reward: 0,
+          currentValue: currentValue,
+          updatedSettings: null,
+          nextSuggestion: null,
+          trainingStats: null
+        }
+      });
+    }
     
     // Calculate enhanced reward based on feedback
     const reward = calculateEnhancedReward(feedback, context);
@@ -1123,13 +1160,26 @@ app.get('/api/health', (req, res) => {
 
 /**
  * POST /api/users
- * Create new user
+ * Create new user (validated against Extension backend — no personal data stored)
  */
 app.post('/api/users', async (req, res) => {
   try {
-    const { userId, name, email } = req.body;
-    
-    // Check if user exists
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+
+    // Validate userId exists in the Extension backend
+    const isValid = await validateUserWithExtension(userId);
+    if (!isValid) {
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid userId — user not found in authentication service'
+      });
+    }
+
+    // Check if user already exists in optimization DB
     let user = await dbService.getUser(userId);
     if (user) {
       return res.status(400).json({

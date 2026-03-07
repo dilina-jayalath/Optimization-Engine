@@ -59,6 +59,71 @@ def initialize():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/rl/register-user', methods=['POST'])
+def register_user():
+    """
+    Register a new user: create their profile and initialize RL agents
+    for all core UI parameters. Called once when a real (non-guest) user
+    is detected by the frontend.
+    """
+    try:
+        data = request.json
+        user_id = data.get('userId')
+        initial_profile = data.get('profile', {})
+
+        if not user_id or user_id == 'guest':
+            return jsonify({'success': False, 'reason': 'guest'}), 400
+
+        # Check if already registered (idempotent)
+        already_registered = user_id in user_profiles
+
+        # Merge initial profile data from extension into user_profiles
+        if user_id not in user_profiles:
+            user_profiles[user_id] = {}
+        user_profiles[user_id].update(initial_profile)
+
+        # Initialize RL agents for all core parameters
+        core_parameters = list(get_action_space('font_size') and {
+            'font_size', 'line_height', 'theme', 'contrast_mode',
+            'element_spacing_x', 'element_spacing_y',
+            'element_padding_x', 'element_padding_y',
+            'target_size', 'reduced_motion', 'tooltip_assist',
+            'layout_simplification'
+        })
+        initialized = []
+        for param in core_parameters:
+            key = f"{user_id}:{param}"
+            if key not in agents_data:
+                agents_data[key] = {
+                    'steps': 0,
+                    'epsilon': 0.2,
+                    'q_values': {},
+                    'created': datetime.now(timezone.utc).isoformat()
+                }
+                # Seed Q-values from initial profile if available
+                action_space = get_action_space(param)
+                current_val = initial_profile.get(param)
+                for a in action_space:
+                    # Slightly boost Q-value for the user's current setting
+                    agents_data[key]['q_values'][a] = 0.6 if a == current_val else 0.5
+                initialized.append(param)
+
+        print(f"👤 [RL Register] User {user_id} — "
+              f"{'already existed' if already_registered else 'created'}, "
+              f"initialized agents: {initialized}")
+
+        return jsonify({
+            'success': True,
+            'userId': user_id,
+            'alreadyRegistered': already_registered,
+            'initializedAgents': initialized,
+            'profileKeys': list(user_profiles[user_id].keys())
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/rl/choose-action', methods=['POST'])
 def choose_action():
     """
@@ -68,6 +133,22 @@ def choose_action():
     try:
         data = request.json
         user_id = data.get('userId')
+        
+        if user_id == 'guest':
+            return jsonify({
+                'success': True,
+                'action': 'default',
+                'actionIndex': 0,
+                'qValue': 0.5,
+                'epsilon': 1.0,
+                'reasoning': {
+                    'exploration': False,
+                    'avoidedCurrent': False,
+                    'topActions': [],
+                    'recommendation': 'Guest user - no optimization applied'
+                }
+            })
+            
         parameter = data.get('parameter')
         state = data.get('state', {})
         context = data.get('context', {})
@@ -214,6 +295,21 @@ def feedback():
     try:
         data = request.json
         user_id = data.get('userId')
+        
+        if user_id == 'guest':
+            return jsonify({
+                'success': True,
+                'loss': 0.0,
+                'epsilon': 1.0,
+                'steps': 0,
+                'qValue': 0.0,
+                'stats': {
+                    'steps': 0,
+                    'epsilon': 1.0,
+                    'qValuesCount': 0
+                }
+            })
+            
         parameter = data.get('parameter')
         action = data.get('action')
         reward = data.get('reward', 0)
@@ -298,6 +394,15 @@ def suggest():
     try:
         data = request.json
         user_id = data.get('userId')
+        
+        if user_id == 'guest':
+            return jsonify({
+                'success': True,
+                'suggestions': {},
+                'userId': 'guest',
+                'context': data.get('context', {})
+            })
+            
         current_settings = data.get('currentSettings', {})
         context = data.get('context', {})
         
@@ -373,6 +478,13 @@ def component_issue_feedback():
     try:
         data = request.json
         user_id = data.get('userId')
+        
+        if user_id == 'guest':
+            return jsonify({
+                'success': True,
+                'message': 'Guest mode - feedback ignored'
+            })
+            
         component_id = data.get('componentId')
         component_type = data.get('componentType')
         issue = data.get('issue')
@@ -436,6 +548,14 @@ def rl_feedback_submit():
     try:
         data = request.json
         user_id = data.get('userId')
+        
+        if user_id == 'guest':
+            return jsonify({
+                'success': True,
+                'reward': 0,
+                'message': 'Guest mode - feedback ignored'
+            })
+            
         setting_key = data.get('settingKey')
         feedback = data.get('feedback')
         
@@ -468,6 +588,13 @@ def manual_settings_apply():
     try:
         data = request.json
         user_id = data.get('userId')
+        
+        if user_id == 'guest':
+            return jsonify({
+                'success': True,
+                'message': 'Guest mode - settings not persisted.'
+            })
+            
         settings = data.get('settings', {})
         
         print(f"💾 Saving manual settings for {user_id}: {settings}")

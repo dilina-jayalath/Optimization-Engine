@@ -28,6 +28,21 @@ class RLMongoDBService {
    */
   async getUser(userId) {
     try {
+      if (userId === 'guest') {
+        const guestUser = {
+          userId: 'guest',
+          currentSettings: {},
+          mlProfile: {},
+          manualOverrides: new Map(),
+          dashboardSettings: {},
+          lastActive: new Date()
+        };
+        // Mock Mongoose save method for safety since some routes call user.save()
+        guestUser.save = async () => guestUser;
+        guestUser.toJSON = () => guestUser;
+        return guestUser;
+      }
+
       let user = await User.findOne({ userId });
       
       if (!user) {
@@ -56,6 +71,10 @@ class RLMongoDBService {
    */
   async updateUserSettings(userId, settings, source = 'rl_optimization') {
     try {
+      if (userId === 'guest') {
+        return settings || {};
+      }
+
       const user = await this.getUser(userId);
       const oldSettings = { ...user.currentSettings };
       
@@ -79,6 +98,15 @@ class RLMongoDBService {
    */
   async updateMLProfile(userId, categoryWise, userWise, mergedProfile) {
     try {
+      if (userId === 'guest') {
+        return {
+          categoryWise,
+          userWise,
+          mergedProfile,
+          lastUpdated: new Date()
+        };
+      }
+
       const user = await this.getUser(userId);
       
       user.mlProfile = {
@@ -101,6 +129,13 @@ class RLMongoDBService {
    */
   async setManualOverride(userId, parameter, value, reason = 'user_preference') {
     try {
+      if (userId === 'guest') {
+        const guestUser = await this.getUser('guest');
+        guestUser.currentSettings[parameter] = value;
+        guestUser.manualOverrides.set(parameter, { value, timestamp: new Date(), reason });
+        return guestUser;
+      }
+
       const user = await this.getUser(userId);
       
       user.manualOverrides.set(parameter, {
