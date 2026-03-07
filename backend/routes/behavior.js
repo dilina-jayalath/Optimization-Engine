@@ -23,6 +23,20 @@ const behaviorLogSchema = new mongoose.Schema({
     scrollDepth: { type: Number, default: 0 },
     tasksCompleted: { type: Number, default: 0 },
     immediateReversion: { type: Boolean, default: false },
+    // Anomaly detection metrics
+    clickCount: { type: Number, default: 0 },
+    misclickCount: { type: Number, default: 0 },
+    rageClickCount: { type: Number, default: 0 },
+    avgTimeToClick: { type: Number, default: 0 },
+    formErrorCount: { type: Number, default: 0 },
+    zoomEventCount: { type: Number, default: 0 },
+    // GDPR-compliant tracking
+    mouseDistance: { type: Number, default: 0 },
+    mouseMovingTime: { type: Number, default: 0 },
+    focusCount: { type: Number, default: 0 },
+    blurCount: { type: Number, default: 0 },
+    viewportWidth: { type: Number, default: 0 },
+    viewportHeight: { type: Number, default: 0 },
   },
   
   settingChanges: [{
@@ -62,6 +76,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: sessionId, userId, or uiVariant',
+      });
+    }
+
+    if (userId === 'guest') {
+      console.log(`[Behavior API] Ignoring behavior data for guest user (session=${sessionId})`);
+      return res.json({
+        success: true,
+        sessionId,
+        message: 'Behavior data ignored for guest user',
       });
     }
 
@@ -111,6 +134,15 @@ router.get('/:userId/sessions', async (req, res) => {
   try {
     const { userId } = req.params;
     const limit = parseInt(req.query.limit) || 50;
+    
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        count: 0,
+        sessions: [],
+      });
+    }
 
     const sessions = await BehaviorLog.find({ userId })
       .sort({ timestamp: -1 })
@@ -140,6 +172,21 @@ router.get('/:userId/sessions', async (req, res) => {
 router.get('/:userId/summary', async (req, res) => {
   try {
     const { userId } = req.params;
+    
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        summary: {
+          totalSessions: 0,
+          totalDuration: 0,
+          totalInteractions: 0,
+          totalErrors: 0,
+          averageScrollDepth: 0,
+          immediateReversionCount: 0,
+        },
+      });
+    }
 
     const sessions = await BehaviorLog.find({ userId });
 
@@ -178,6 +225,20 @@ router.get('/:userId/revert-stats', async (req, res) => {
   try {
     const { userId } = req.params;
     const windowDays = parseInt(req.query.windowDays) || 30;
+    
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        windowDays,
+        totalSessions: 0,
+        revertCount: 0,
+        revertRate: 0,
+        averageReward: null,
+        lastRevertAt: null,
+      });
+    }
+
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
     const logs = await BehaviorLog.find({ userId, timestamp: { $gte: since } }).sort({ timestamp: -1 });

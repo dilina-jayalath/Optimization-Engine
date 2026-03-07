@@ -23,6 +23,25 @@ const dbService = new RLMongoDBService();
 // Python DQN Service URL
 const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
+// Extension backend URL (for userId validation)
+const EXTENSION_SERVER_URL = process.env.EXTENSION_SERVER_URL || 'http://localhost:3000';
+
+/**
+ * Validate a userId against the Extension backend.
+ * Returns true if the user exists, false otherwise.
+ */
+async function validateUserWithExtension(userId) {
+  if (!userId || userId === 'guest' || userId === 'anonymous') return false;
+  try {
+    const response = await axios.get(`${EXTENSION_SERVER_URL}/api/auth/validate/${userId}`, { timeout: 3000 });
+    return response.data && response.data.valid === true;
+  } catch (error) {
+    console.warn('[UserValidation] Extension server unreachable, allowing userId:', userId);
+    // Fail-open: if extension server is down, allow the request so the system doesn't break
+    return true;
+  }
+}
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -472,6 +491,16 @@ app.post('/api/users/:userId/qtables/:parameter/update', async (req, res) => {
     const { userId, parameter } = req.params;
     const { state, action, value } = req.body;
     
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        data: {
+          parameter,
+          totalUpdates: 0
+        }
+      });
+    }
+
     const qTable = await dbService.updateQValue(userId, parameter, state, action, value);
     
     res.json({
@@ -495,6 +524,18 @@ app.get('/api/users/:userId/qtables/:parameter/best-action', async (req, res) =>
     const { userId, parameter } = req.params;
     const { state } = req.query;
     
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        data: {
+          action: 'default', // Fallback guest
+          qValue: 0,
+          epsilon: 1.0,
+          source: 'guest_fallback'
+        }
+      });
+    }
+
     // Try to get recommendation from Python DQN first
     try {
       const user = await dbService.getUser(userId);
@@ -573,7 +614,22 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       state = req.body.state;
     }
     
-    console.log(' Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
+    console.log(` Received feedback for ${userId}:`, { parameter, currentValue, feedbackType: feedback.type });
+
+    if (userId === 'guest') {
+      console.log(' Ignoring feedback for guest user.');
+      return res.json({
+        success: true,
+        data: {
+          feedbackId: 'guest_feedback',
+          reward: 0,
+          currentValue: currentValue,
+          updatedSettings: null,
+          nextSuggestion: null,
+          trainingStats: null
+        }
+      });
+    }
     
     // Calculate enhanced reward based on feedback
     const reward = calculateEnhancedReward(feedback, context);
@@ -1102,13 +1158,26 @@ app.get('/api/health', (req, res) => {
 
 /**
  * POST /api/users
- * Create new user
+ * Create new user (validated against Extension backend — no personal data stored)
  */
 app.post('/api/users', async (req, res) => {
   try {
-    const { userId, name, email } = req.body;
-    
-    // Check if user exists
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+
+    // Validate userId exists in the Extension backend
+    const isValid = await validateUserWithExtension(userId);
+    if (!isValid) {
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid userId — user not found in authentication service'
+      });
+    }
+
+    // Check if user already exists in optimization DB
     let user = await dbService.getUser(userId);
     if (user) {
       return res.status(400).json({
@@ -1392,20 +1461,42 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log(' Connected to MongoDB');
-    console.log(` Database: ${MONGODB_URI.split('/').pop()}`);
-    app.listen(PORT, () => {
-      console.log(` API server running on http://localhost:${PORT}`);
-      console.log(` Dashboard: http://localhost:${PORT}/dashboard`);
-      console.log(` Health check: http://localhost:${PORT}/api/health`);
+// Connect to MongoDB (shared across serverless invocations)
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  await mongoose.connect(MONGODB_URI);
+  isConnected = true;
+  console.log('✅ Connected to MongoDB');
+};
+
+// Start server only when run directly (not on Vercel)
+if (require.main === module) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => {
+      console.log('✅ Connected to MongoDB');
+      console.log(`📊 Database: ${MONGODB_URI.split('/').pop()}`);
+      app.listen(PORT, () => {
+        console.log(`🚀 API server running on http://localhost:${PORT}`);
+        console.log(`📱 Dashboard: http://localhost:${PORT}/dashboard`);
+        console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+      });
+    })
+    .catch(err => {
+      console.error('❌ MongoDB connection error:', err);
+      console.error('💡 Make sure MongoDB is running and MONGODB_URI is correct');
+      process.exit(1);
     });
-  })
-  .catch(err => {
-    console.error(' MongoDB connection error:', err);
-    console.error(' Make sure MongoDB is running and MONGODB_URI is correct');
-    process.exit(1);
+} else {
+  // Serverless: connect on first request via middleware
+  app.use(async (req, res, next) => {
+    try {
+      await connectDB();
+      next();
+    } catch (err) {
+      res.status(500).json({ success: false, error: 'Database connection failed' });
+    }
   });
+}
 
 module.exports = app;

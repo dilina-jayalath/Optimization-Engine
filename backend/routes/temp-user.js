@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
+const PYTHON_RL_URL = process.env.RL_SERVICE_URL || process.env.PYTHON_RL_URL || 'http://localhost:8000';
 
 /**
  * POST /api/temp-user/check
@@ -12,7 +12,7 @@ const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
  */
 router.post('/check', async (req, res) => {
   try {
-    const { metrics, recent_interactions } = req.body;
+    const { userId, metrics, recent_interactions } = req.body;
 
     if (!metrics) {
       return res.status(400).json({
@@ -21,24 +21,11 @@ router.post('/check', async (req, res) => {
       });
     }
 
-    // Construct payload for Python Service
-    // The Python service expects a batch or a single interaction sequence.
-    // Based on demo_temp_user.py, it expects:
-    // {
-    //   "user_id": "...",
-    //   "session_id": "...",
-    //   "interactions": [ ... ],
-    //   "metrics": { ... }
-    // }
-    
-    // However, the Python endpoint /rl/temp-user/score might expect a slightly different format.
-    // Let's assume we pass what the frontend sends, perhaps enriched.
-    
     const timestamp = new Date().toISOString();
     
     // Construct payload for Python Service (InteractionBatch schema)
     const pythonPayload = {
-        user_id: req.body.user_id || `anon_${Date.now()}`,
+        user_id: userId || `anon_${Date.now()}`,
         batch_id: `batch_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         captured_at: timestamp,
         events_agg: {
@@ -62,15 +49,8 @@ router.post('/check', async (req, res) => {
 
     const response = await axios.post(`${PYTHON_RL_URL}/rl/temp-user/score`, pythonPayload);
 
-    // Python Service Response Format (from demo_temp_user.py experience):
-    // {
-    //   "result": {
-    //      "is_temp_user": true/false,
-    //      "confidence": 0.85,
-    //      "action": "reject" | "quarantine" | "keep",
-    //      "reason": "erratic_mouse_movement"
-    //   }
-    // }
+    // Python Service actual response format:
+    // { "success": true, "result": { "outcome": "keep"|"quarantine"|"reject", "anomaly_score": 0.85, "reason": "..." } }
 
     const result = response.data.result || response.data;
 
@@ -78,9 +58,9 @@ router.post('/check', async (req, res) => {
 
     res.json({
       success: true,
-      isTempUser: result.action === 'reject' || result.action === 'quarantine',
-      action: result.action,
-      confidence: result.confidence,
+      isTempUser: result.outcome === 'reject' || result.outcome === 'quarantine',
+      action: result.outcome,
+      confidence: result.anomaly_score,
       reason: result.reason
     });
 
