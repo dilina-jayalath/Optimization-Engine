@@ -134,44 +134,44 @@ class DQNAgent:
         
         Args:
             state_dict: {
-                'fontSize': 'large',
+                'font_size': 18,
                 'theme': 'dark',
-                'lineHeight': 1.6,
-                'deviceType': 'mobile',
-                'timeOfDay': 'evening'
+                'line_height': 1.6,
+                'device_type': 'mobile',
+                'time_of_day': 'evening'
             }
         
         Returns:
             numpy array of encoded state
         """
-        # Font size encoding
-        font_map = {'small': 0, 'medium': 1, 'large': 2, 'x-large': 3}
-        font_size = font_map.get(state_dict.get('fontSize', 'medium'), 1)
+        # Font size encoding (normalized 10-32 -> 0-1)
+        font_size_val = float(state_dict.get('font_size', 16))
+        font_size_norm = max(0.0, min(1.0, (font_size_val - 10.0) / 22.0))
         
         # Theme encoding
         theme_map = {'light': 0, 'dark': 1, 'auto': 2}
         theme = theme_map.get(state_dict.get('theme', 'light'), 0)
         
         # Line height (normalized)
-        line_height = float(state_dict.get('lineHeight', 1.5)) / 2.0
+        line_height = float(state_dict.get('line_height', 1.5)) / 2.0
         
         # Contrast mode
         contrast_map = {'normal': 0, 'high': 1}
-        contrast = contrast_map.get(state_dict.get('contrastMode', 'normal'), 0)
+        contrast = contrast_map.get(state_dict.get('contrast_mode', 'normal'), 0)
         
         # Device type
         device_map = {'desktop': 0, 'mobile': 1, 'tablet': 2}
-        device_type = device_map.get(state_dict.get('deviceType', 'desktop'), 0)
+        device_type = device_map.get(state_dict.get('device_type', 'desktop'), 0)
         
         # Time of day
         time_map = {'morning': 0, 'afternoon': 1, 'evening': 2, 'night': 3}
-        time_of_day = time_map.get(state_dict.get('timeOfDay', 'afternoon'), 1)
+        time_of_day = time_map.get(state_dict.get('time_of_day', 'afternoon'), 1)
         
         # Target size (normalized)
-        target_size = float(state_dict.get('targetSize', 32)) / 40.0
+        target_size = float(state_dict.get('target_size', 32)) / 40.0
         
         return np.array([
-            font_size / 3.0,
+            font_size_norm,
             theme / 2.0,
             line_height,
             contrast,

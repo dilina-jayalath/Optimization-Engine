@@ -1,27 +1,46 @@
 {
   "user_id": "u_001",
-  "session_id": "s_00001",
-
   "metadata": {
-    "origin": "category",
-    "created_at": "2025-10-06T11:00:00Z",
-    "confidence_overall": 0.65
+    "origin": "user",
+    "created_at": "2026-03-01T09:20:54.996765+00:00",
+    "confidence_overall": 0.7631,
+    "version": 6
   },
-
   "profile": {
-    "font_size": "large",
-    "line_height": 1.5,
-    "contrast_mode": "high",
+    "font_size": 17,
+    "line_height": 1.695901820011972,
+    "contrast_mode": "normal",
     "primary_color": "#1a73e8",
+    "primary_color_content": "#ffffff",
     "secondary_color": "#1a73e8",
+    "secondary_color_content": "#ffffff",
     "accent_color": "#e37400",
+    "accent_color_content": "#ffffff",
     "theme": "light",
+    "element_spacing_x": 7,
+    "element_spacing_y": 4,
+    "element_padding_x": 8,
+    "element_padding_y": 8,
     "reduced_motion": true,
-    "element_spacing": "normal",
-    "target_size": 24,
-    "tooltip_assist": false,
-    "layout_simplification": false
+    "target_size": 32,
+    "tooltip_assist": true,
+    "layout_simplification": true
   },
-
-  "node_outputs": {}
+  "profile_changes": {
+    "changed": [
+      "font_size",
+      "line_height",
+      "target_size"
+    ],
+    "new": {
+      "font_size": 17,
+      "line_height": 1.695901820011972,
+      "target_size": 32
+    },
+    "old": {
+      "font_size": 11,
+      "line_height": 1.6,
+      "target_size": 28
+    }
+  }
 }

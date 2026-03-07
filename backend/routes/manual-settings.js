@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { ManualSettings } = require('../mongodb/schemas');
+const { ManualSettings, User } = require('../mongodb/schemas');
+const { broadcastSettingsUpdate } = require('./settings-events');
+const { invalidateUserCache } = require('../utils/session-cache');
 
 /**
  * Manual Settings API
@@ -35,16 +37,24 @@ router.get('/:userId', async (req, res) => {
       hasManualSettings: settings.enabled,
       settings: {
         enabled: settings.enabled,
-        fontSize: settings.fontSize,
-        lineHeight: settings.lineHeight,
-        contrast: settings.contrast,
-        spacing: settings.spacing,
-        targetSize: settings.targetSize,
+        font_size: settings.font_size,
+        line_height: settings.line_height,
+        contrast_mode: settings.contrast_mode,
+        element_spacing_x: settings.element_spacing_x,
+        element_spacing_y: settings.element_spacing_y,
+        element_padding_x: settings.element_padding_x,
+        element_padding_y: settings.element_padding_y,
+        target_size: settings.target_size,
         theme: settings.theme,
-        reducedMotion: settings.reducedMotion,
-        primaryColor: settings.primaryColor,
-        secondaryColor: settings.secondaryColor,
-        accentColor: settings.accentColor,
+        reduced_motion: settings.reduced_motion,
+        primary_color: settings.primary_color,
+        primary_color_content: settings.primary_color_content,
+        secondary_color: settings.secondary_color,
+        secondary_color_content: settings.secondary_color_content,
+        accent_color: settings.accent_color,
+        accent_color_content: settings.accent_color_content,
+        tooltip_assist: settings.tooltip_assist,
+        layout_simplification: settings.layout_simplification,
         lastModified: settings.updatedAt,
       },
     });
@@ -64,62 +74,99 @@ router.get('/:userId', async (req, res) => {
 router.put('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const {
-      enabled,
-      fontSize,
-      lineHeight,
-      contrast,
-      spacing,
-      targetSize,
-      theme,
-      reducedMotion,
-      primaryColor,
-      secondaryColor,
-      accentColor,
-    } = req.body;
-
-    console.log(`[Manual Settings] Updating settings for userId=${userId}`, {
-      enabled,
-      fontSize,
-      contrast,
-    });
-
     const settings = await ManualSettings.findOneAndUpdate(
       { userId },
       {
         userId,
-        enabled: enabled ?? true,
-        fontSize: fontSize || '16px',
-        lineHeight: lineHeight || 1.5,
-        contrast: contrast || 'normal',
-        spacing: spacing || 'normal',
-        targetSize: targetSize || '44px',
-        theme: theme || 'light',
-        reducedMotion: reducedMotion ?? false,
-        primaryColor: primaryColor || '#007bff',
-        secondaryColor: secondaryColor || '#6c757d',
-        accentColor: accentColor || '#28a745',
+        enabled: req.body.enabled ?? true,
+        font_size: Number(req.body.font_size) || 16,
+        line_height: Number(req.body.line_height) || 1.5,
+        contrast_mode: req.body.contrast_mode || 'normal',
+        element_spacing_x: Number(req.body.element_spacing_x) || 8,
+        element_spacing_y: Number(req.body.element_spacing_y) || 8,
+        element_padding_x: Number(req.body.element_padding_x) || 8,
+        element_padding_y: Number(req.body.element_padding_y) || 8,
+        target_size: Number(req.body.target_size) || 44,
+        theme: req.body.theme || 'light',
+        reduced_motion: req.body.reduced_motion ?? false,
+        primary_color: req.body.primary_color || '#007bff',
+        primary_color_content: req.body.primary_color_content || '#ffffff',
+        secondary_color: req.body.secondary_color || '#6c757d',
+        secondary_color_content: req.body.secondary_color_content || '#ffffff',
+        accent_color: req.body.accent_color || '#28a745',
+        accent_color_content: req.body.accent_color_content || '#ffffff',
+        tooltip_assist: req.body.tooltip_assist ?? false,
+        layout_simplification: req.body.layout_simplification ?? false,
       },
       { upsert: true, new: true }
     );
 
+    const targetSizeValue = Number.parseInt(String(settings.target_size), 10);
+
+    await User.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          'currentSettings.font_size': settings.font_size,
+          'currentSettings.line_height': settings.line_height,
+          'currentSettings.theme': settings.theme,
+          'currentSettings.contrast_mode': settings.contrast_mode,
+          'currentSettings.element_spacing_x': settings.element_spacing_x,
+          'currentSettings.element_spacing_y': settings.element_spacing_y,
+          'currentSettings.element_padding_x': settings.element_padding_x,
+          'currentSettings.element_padding_y': settings.element_padding_y,
+          'currentSettings.target_size': Number.isNaN(targetSizeValue) ? settings.target_size : targetSizeValue,
+          'currentSettings.tooltip_assist': settings.tooltip_assist,
+          'currentSettings.layout_simplification': settings.layout_simplification,
+          'currentSettings.reduced_motion': settings.reduced_motion,
+          'currentSettings.primary_color': settings.primary_color,
+          'currentSettings.secondary_color': settings.secondary_color,
+          'currentSettings.accent_color': settings.accent_color
+        }
+      },
+      { upsert: true }
+    );
+
     console.log(`[Manual Settings] Settings updated successfully for ${userId}`);
+
+    // Broadcast settings update to all connected clients via SSE
+    broadcastSettingsUpdate(userId, {
+      enabled: settings.enabled,
+      font_size: settings.font_size,
+      line_height: settings.line_height,
+      contrast_mode: settings.contrast_mode,
+      element_spacing_x: settings.element_spacing_x,
+      element_spacing_y: settings.element_spacing_y,
+      target_size: settings.target_size,
+      theme: settings.theme,
+      reduced_motion: settings.reduced_motion,
+      primary_color: settings.primary_color,
+      secondary_color: settings.secondary_color,
+      accent_color: settings.accent_color,
+      tooltip_assist: settings.tooltip_assist,
+      layout_simplification: settings.layout_simplification,
+    }, 'manual');
+
+    invalidateUserCache(userId);
 
     res.json({
       success: true,
       userId,
       settings: {
         enabled: settings.enabled,
-        fontSize: settings.fontSize,
-        lineHeight: settings.lineHeight,
-        contrast: settings.contrast,
-        spacing: settings.spacing,
-        targetSize: settings.targetSize,
+        font_size: settings.font_size,
+        line_height: settings.line_height,
+        contrast_mode: settings.contrast_mode,
+        element_spacing_x: settings.element_spacing_x,
+        element_spacing_y: settings.element_spacing_y,
+        target_size: settings.target_size,
         theme: settings.theme,
-        reducedMotion: settings.reducedMotion,
-        primaryColor: settings.primaryColor,
-        secondaryColor: settings.secondaryColor,
-        accentColor: settings.accentColor,
+        reduced_motion: settings.reduced_motion,
+        primary_color: settings.primary_color,
+        secondary_color: settings.secondary_color,
+        accent_color: settings.accent_color,
+        tooltip_assist: settings.tooltip_assist,
+        layout_simplification: settings.layout_simplification,
         lastModified: settings.updatedAt,
       },
     });
@@ -175,16 +222,24 @@ router.post('/:userId/reset', async (req, res) => {
       {
         userId,
         enabled: false,
-        fontSize: '16px',
-        lineHeight: 1.5,
-        contrast: 'normal',
-        spacing: 'normal',
-        targetSize: '44px',
+        font_size: 16,
+        line_height: 1.5,
+        contrast_mode: 'normal',
+        element_spacing_x: 8,
+        element_spacing_y: 8,
+        element_padding_x: 8,
+        element_padding_y: 8,
+        target_size: 44,
         theme: 'light',
-        reducedMotion: false,
-        primaryColor: '#007bff',
-        secondaryColor: '#6c757d',
-        accentColor: '#28a745',
+        reduced_motion: false,
+        primary_color: '#007bff',
+        primary_color_content: '#ffffff',
+        secondary_color: '#6c757d',
+        secondary_color_content: '#ffffff',
+        accent_color: '#28a745',
+        accent_color_content: '#ffffff',
+        tooltip_assist: false,
+        layout_simplification: false,
       },
       { upsert: true, new: true }
     );
@@ -197,16 +252,24 @@ router.post('/:userId/reset', async (req, res) => {
       message: 'Settings reset to defaults',
       settings: {
         enabled: settings.enabled,
-        fontSize: settings.fontSize,
-        lineHeight: settings.lineHeight,
-        contrast: settings.contrast,
-        spacing: settings.spacing,
-        targetSize: settings.targetSize,
+        font_size: settings.font_size,
+        line_height: settings.line_height,
+        contrast_mode: settings.contrast_mode,
+        element_spacing_x: settings.element_spacing_x,
+        element_spacing_y: settings.element_spacing_y,
+        element_padding_x: settings.element_padding_x,
+        element_padding_y: settings.element_padding_y,
+        target_size: settings.target_size,
         theme: settings.theme,
-        reducedMotion: settings.reducedMotion,
-        primaryColor: settings.primaryColor,
-        secondaryColor: settings.secondaryColor,
-        accentColor: settings.accentColor,
+        reduced_motion: settings.reduced_motion,
+        primary_color: settings.primary_color,
+        primary_color_content: settings.primary_color_content,
+        secondary_color: settings.secondary_color,
+        secondary_color_content: settings.secondary_color_content,
+        accent_color: settings.accent_color,
+        accent_color_content: settings.accent_color_content,
+        tooltip_assist: settings.tooltip_assist,
+        layout_simplification: settings.layout_simplification,
       },
     });
   } catch (error) {
@@ -214,6 +277,102 @@ router.post('/:userId/reset', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to reset settings',
+    });
+  }
+});
+
+/**
+ * POST /api/manual-settings/apply
+ * Quick apply settings and broadcast via SSE (for demos and RL optimization)
+ */
+router.post('/apply', async (req, res) => {
+  try {
+    const { userId, settings: newSettings } = req.body;
+
+    if (!userId || !newSettings) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId and settings are required'
+      });
+    }
+
+    console.log(`[Manual Settings] Quick apply for userId=${userId}`, newSettings);
+
+    // Update settings in database
+    const settings = await ManualSettings.findOneAndUpdate(
+      { userId },
+      {
+        userId,
+        enabled: true,
+        ...(newSettings.font_size && { font_size: newSettings.font_size }),
+        ...(newSettings.line_height && { line_height: newSettings.line_height }),
+        ...(newSettings.contrast_mode && { contrast_mode: newSettings.contrast_mode }),
+        ...(newSettings.element_spacing_x && { element_spacing_x: newSettings.element_spacing_x }),
+        ...(newSettings.element_spacing_y && { element_spacing_y: newSettings.element_spacing_y }),
+        ...(newSettings.element_padding_x && { element_padding_x: newSettings.element_padding_x }),
+        ...(newSettings.element_padding_y && { element_padding_y: newSettings.element_padding_y }),
+        ...(newSettings.target_size && { target_size: newSettings.target_size }),
+        ...(newSettings.theme && { theme: newSettings.theme }),
+        ...(newSettings.reduced_motion !== undefined && { reduced_motion: newSettings.reduced_motion }),
+        ...(newSettings.primary_color && { primary_color: newSettings.primary_color }),
+        ...(newSettings.primary_color_content && { primary_color_content: newSettings.primary_color_content }),
+        ...(newSettings.secondary_color && { secondary_color: newSettings.secondary_color }),
+        ...(newSettings.secondary_color_content && { secondary_color_content: newSettings.secondary_color_content }),
+        ...(newSettings.accent_color && { accent_color: newSettings.accent_color }),
+        ...(newSettings.accent_color_content && { accent_color_content: newSettings.accent_color_content }),
+        ...(newSettings.tooltip_assist !== undefined && { tooltip_assist: newSettings.tooltip_assist }),
+        ...(newSettings.layout_simplification !== undefined && { layout_simplification: newSettings.layout_simplification }),
+      },
+      { upsert: true, new: true }
+    );
+
+    // Also update User.currentSettings for dashboard persistence
+    const userUpdateData = {};
+    if (newSettings.font_size) userUpdateData['currentSettings.font_size'] = newSettings.font_size;
+    if (newSettings.line_height) userUpdateData['currentSettings.line_height'] = newSettings.line_height;
+    if (newSettings.theme) userUpdateData['currentSettings.theme'] = newSettings.theme;
+    if (newSettings.contrast_mode) userUpdateData['currentSettings.contrast_mode'] = newSettings.contrast_mode;
+    if (newSettings.element_spacing_x) userUpdateData['currentSettings.element_spacing_x'] = newSettings.element_spacing_x;
+    if (newSettings.element_spacing_y) userUpdateData['currentSettings.element_spacing_y'] = newSettings.element_spacing_y;
+    if (newSettings.element_padding_x) userUpdateData['currentSettings.element_padding_x'] = newSettings.element_padding_x;
+    if (newSettings.element_padding_y) userUpdateData['currentSettings.element_padding_y'] = newSettings.element_padding_y;
+    if (newSettings.target_size) {
+      const targetSizeValue = Number.parseInt(String(newSettings.target_size), 10);
+      userUpdateData['currentSettings.target_size'] = Number.isNaN(targetSizeValue) ? newSettings.target_size : targetSizeValue;
+    }
+    if (newSettings.tooltip_assist !== undefined) userUpdateData['currentSettings.tooltip_assist'] = newSettings.tooltip_assist;
+    if (newSettings.layout_simplification !== undefined) userUpdateData['currentSettings.layout_simplification'] = newSettings.layout_simplification;
+
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await User.findOneAndUpdate(
+        { userId },
+        { $set: userUpdateData },
+        { upsert: true }
+      );
+      console.log(`[Manual Settings]  User.currentSettings updated for ${userId}`, userUpdateData);
+    }
+
+    // Broadcast via SSE
+    broadcastSettingsUpdate(userId, newSettings, 'manual');
+
+    // Invalidate Personalization Cache so next load gets new settings
+    invalidateUserCache(userId);
+
+    console.log(`[Manual Settings]  Settings applied and broadcasted for ${userId}`);
+
+    res.json({
+      success: true,
+      userId,
+      message: 'Settings applied and broadcasted',
+      settings: newSettings
+    });
+  } catch (error) {
+    console.error('[Manual Settings] Error applying settings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to apply settings',
+      details: error.message
     });
   }
 });

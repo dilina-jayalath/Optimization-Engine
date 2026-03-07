@@ -2,14 +2,14 @@
 const express = require('express');
 const axios = require('axios');
 const { Profile } = require('./profiles');
-const { ManualSettings } = require('../mongodb/schemas');
+const { ManualSettings, PreferenceState, User } = require('../mongodb/schemas');
+const { getMappedValue } = require('../config/ladders');
+const { getCachedSession, setCachedSession, invalidateUserCache } = require('../utils/session-cache');
 const router = express.Router();
 
 // Python Personalization Service URL (Week 2 - Thompson Sampling)
 const PERSONALIZATION_SERVICE = process.env.PERSONALIZATION_SERVICE_URL || 'http://localhost:5002';
 
-// In-memory cache for session-sticky personalization (use Redis in production)
-const sessionCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 const mapFeedbackToReward = (feedback) => {
@@ -25,6 +25,37 @@ const mapFeedbackToReward = (feedback) => {
   if (type === 'neutral') return 0.5;
   if (type === 'negative') return 0.0;
   return 0.5;
+};
+
+const PROFILE_KEY_TO_SETTING_KEY = {
+  font_size: 'visual.fontSize',
+  line_height: 'visual.lineHeight',
+  theme: 'visual.theme',
+  contrast_mode: 'visual.contrast',
+  element_spacing_x: 'layout.spacing',
+  element_spacing_y: 'layout.spacing',
+  target_size: 'motor.targetSize'
+};
+
+const SETTING_KEY_TO_PROFILE_KEY = Object.entries(PROFILE_KEY_TO_SETTING_KEY)
+  .reduce((acc, [profileKey, settingKey]) => {
+    acc[settingKey] = profileKey;
+    return acc;
+  }, {});
+
+const mapSettingKeyToProfileKey = (settingKey) => {
+  return SETTING_KEY_TO_PROFILE_KEY[settingKey] || settingKey;
+};
+
+const resolveProfileValue = (profileKey, value) => {
+  const settingKey = PROFILE_KEY_TO_SETTING_KEY[profileKey];
+  if (!settingKey) return value;
+
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.includes('px')) return value;
+
+  const mapped = getMappedValue(settingKey, value);
+  return mapped ?? value;
 };
 
 /**
@@ -76,15 +107,24 @@ router.get('/', async (req, res) => {
         clientDomain: clientDomain || null,
         settings: {
           variant: 'manual',
-          fontSize: manualSettings.fontSize,
-          lineHeight: manualSettings.lineHeight,
-          contrast: manualSettings.contrast,
-          spacing: manualSettings.spacing,
-          targetSize: manualSettings.targetSize,
-          primaryColor: manualSettings.primaryColor,
-          secondaryColor: manualSettings.secondaryColor,
-          accentColor: manualSettings.accentColor,
+          font_size: manualSettings.font_size,
+          line_height: manualSettings.line_height,
+          contrast_mode: manualSettings.contrast_mode,
+          element_spacing_x: manualSettings.element_spacing_x,
+          element_spacing_y: manualSettings.element_spacing_y,
+          element_padding_x: manualSettings.element_padding_x,
+          element_padding_y: manualSettings.element_padding_y,
+          target_size: manualSettings.target_size,
+          primary_color: manualSettings.primary_color,
+          primary_color_content: manualSettings.primary_color_content,
+          secondary_color: manualSettings.secondary_color,
+          secondary_color_content: manualSettings.secondary_color_content,
+          accent_color: manualSettings.accent_color,
+          accent_color_content: manualSettings.accent_color_content,
           theme: manualSettings.theme,
+          reduced_motion: manualSettings.reduced_motion,
+          tooltip_assist: manualSettings.tooltip_assist,
+          layout_simplification: manualSettings.layout_simplification
         },
         source: 'manual',
         confidence: 1.0, // Manual settings are 100% confident
@@ -95,8 +135,7 @@ router.get('/', async (req, res) => {
     }
 
     // Check cache for existing personalization (sticky sessions)
-    const cacheKey = `${userId}_${clientDomain || 'default'}`;
-    const cached = sessionCache.get(cacheKey);
+    const cached = getCachedSession(userId, clientDomain);
     
     if (cached && !forceNew && (Date.now() - cached.timestamp < CACHE_TTL)) {
       console.log(`[Personalization] Returning cached personalization for ${userId}`);
@@ -107,77 +146,79 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Week 3: Fetch accessibility context from profile
-    const profile = await Profile.findOne({ userId }) || await new Profile({ userId }).save();
-
-    const context = {
-      visual_impairment: Number(profile.visual_impairment ?? 0.5),
-      motor_skills: Number(profile.motor_skills ?? 0.5),
-      cognitive_load: Number(profile.cognitive_load ?? 0.5),
-    };
-
-    // Week 2: Call Thompson Sampling service for personalization
-    try {
-      const tsResponse = await axios.post(`${PERSONALIZATION_SERVICE}/personalize`, {
-        userId,
-        context,
-        mode, // 'explore' or 'exploit'
-      });
-
-      if (tsResponse.data?.success) {
-        const { settings, armIndex, sessionId } = tsResponse.data;
-
-        const personalizationResponse = {
-          success: true,
-          userId,
-          clientDomain: clientDomain || null,
-          settings: {
-            variant: settings.name || 'personalized',
-            fontSize: settings.fontSize,
-            lineHeight: settings.lineHeight,
-            contrast: settings.contrast,
-            spacing: settings.spacing,
-            targetSize: settings.targetSize,
-            // Map to your existing format
-            primaryColor: settings.contrast === 'high' ? '#000000' : '#007bff',
-            theme: settings.contrast === 'high' ? 'dark' : 'light',
-          },
-          sessionId,
-          armIndex,
-          source: 'thompson-sampling',
-          mode,
-          confidence: 0.8,  // Thompson Sampling provides implicit confidence
-          timestamp: new Date().toISOString(),
+    // PRIORITY 2: Check for current settings (RL provided or persisted)
+    // We fetch the user to get their latest stored settings
+    const user = await User.findOne({ userId });
+    
+    if (user && user.currentSettings && Object.keys(user.currentSettings).length > 0) {
+        console.log(`[Personalization] Using stored currentSettings for ${userId}`);
+        
+        // Map currentSettings schema to Personalization API schema
+        // currentSettings uses keys like 'fontSize', 'targetSize' etc.
+        const currentSettings = user.currentSettings;
+        
+        // Ensure manual overrides are merged in if they exist
+        const manualOverrides = user.manualOverrides ? Object.fromEntries(user.manualOverrides) : {};
+        
+        const effectiveSettings = {
+            ...currentSettings,
+            ...manualOverrides
         };
 
-        // Cache the personalization (sticky for 30 minutes)
-        sessionCache.set(cacheKey, {
-          response: personalizationResponse,
-          timestamp: Date.now(),
-        });
+        const personalizedResponse = {
+            success: true,
+            userId,
+            clientDomain: clientDomain || null,
+            settings: {
+                variant: 'personalized',
+                font_size: effectiveSettings.font_size || 16,
+                line_height: effectiveSettings.line_height || 1.5,
+                contrast_mode: effectiveSettings.contrast_mode || 'normal',
+                element_spacing_x: effectiveSettings.element_spacing_x || 8,
+                element_spacing_y: effectiveSettings.element_spacing_y || 8,
+                element_padding_x: effectiveSettings.element_padding_x || 8,
+                element_padding_y: effectiveSettings.element_padding_y || 8,
+                target_size: effectiveSettings.target_size || 32,
+                primary_color: effectiveSettings.primary_color || '#007bff',
+                primary_color_content: effectiveSettings.primary_color_content || '#ffffff',
+                secondary_color: effectiveSettings.secondary_color || '#6c757d',
+                secondary_color_content: effectiveSettings.secondary_color_content || '#ffffff',
+                accent_color: effectiveSettings.accent_color || '#28a745',
+                accent_color_content: effectiveSettings.accent_color_content || '#ffffff',
+                theme: effectiveSettings.theme || 'light',
+                reduced_motion: effectiveSettings.reduced_motion || false,
+                tooltip_assist: effectiveSettings.tooltip_assist || false,
+                layout_simplification: effectiveSettings.layout_simplification || false,
+            },
+            source: 'rl_persistence',
+            confidence: 0.9,
+            timestamp: new Date().toISOString(),
+        };
         
-        return res.json(personalizationResponse);
-      }
-    } catch (tsError) {
-      console.error('[Personalization] Thompson Sampling service error:', tsError.message);
-      // Fallback to baseline if Thompson Sampling fails
+        return res.json(personalizedResponse);
     }
 
     // Fallback to baseline (Week 1 behavior)
     const settings = {
       variant: 'baseline',
-      fontSize: '16px',
-      lineHeight: 1.5,
-      contrast: 'normal',
-      primaryColor: '#007bff',
-      secondaryColor: '#6c757d',
-      accentColor: '#28a745',
+      font_size: 16,
+      line_height: 1.5,
+      contrast_mode: 'normal',
+      element_spacing_x: 8,
+      element_spacing_y: 8,
+      element_padding_x: 8,
+      element_padding_y: 8,
+      primary_color: '#007bff',
+      primary_color_content: '#ffffff',
+      secondary_color: '#6c757d',
+      secondary_color_content: '#ffffff',
+      accent_color: '#28a745',
+      accent_color_content: '#ffffff',
       theme: 'light',
-      reducedMotion: false,
-      spacing: 'normal',
-      targetSize: '44px',
-      tooltipAssist: false,
-      layoutSimplification: false,
+      reduced_motion: false,
+      target_size: 44,
+      tooltip_assist: false,
+      layout_simplification: false,
     };
 
     res.json({
@@ -195,6 +236,120 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/personalization/:userId
+ * 
+ * Returns the effective profile after applying trial preferences and overrides.
+ */
+router.get('/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    let user = await User.findOne({ userId });
+    if (!user) {
+      user = await new User({ userId }).save();
+    }
+
+    const manualSettings = await ManualSettings.findOne({ userId });
+    if (manualSettings && manualSettings.enabled) {
+      return res.json({
+        success: true,
+        userId,
+        source: 'manual',
+        effectiveProfile: {
+          font_size: manualSettings.font_size,
+          line_height: manualSettings.line_height,
+          contrast_mode: manualSettings.contrast_mode,
+          element_spacing_x: manualSettings.element_spacing_x,
+          element_spacing_y: manualSettings.element_spacing_y,
+          element_padding_x: manualSettings.element_padding_x,
+          element_padding_y: manualSettings.element_padding_y,
+          target_size: manualSettings.target_size,
+          theme: manualSettings.theme,
+          reduced_motion: manualSettings.reduced_motion,
+          tooltip_assist: manualSettings.tooltip_assist,
+          layout_simplification: manualSettings.layout_simplification,
+          primary_color: manualSettings.primary_color,
+          primary_color_content: manualSettings.primary_color_content,
+          secondary_color: manualSettings.secondary_color,
+          secondary_color_content: manualSettings.secondary_color_content,
+          accent_color: manualSettings.accent_color,
+          accent_color_content: manualSettings.accent_color_content
+        },
+        rawProfile: null,
+        meta: {
+          lockedSettings: [],
+          preferenceCount: 0
+        }
+      });
+    }
+
+    const preferences = await PreferenceState.find({ userId });
+    const preferenceOverrides = {};
+    const lockedSettings = [];
+
+    for (const pref of preferences) {
+      const profileKey = mapSettingKeyToProfileKey(pref.settingKey);
+      const chosenValue = pref.locked
+        ? (pref.preferredValue || pref.currentValue)
+        : pref.currentValue;
+      preferenceOverrides[profileKey] = chosenValue;
+
+      if (pref.locked) {
+        lockedSettings.push(pref.settingKey);
+      }
+    }
+
+    const manualOverridesRaw = user.manualOverrides
+      ? Object.fromEntries(user.manualOverrides)
+      : {};
+    const manualOverrides = {};
+
+    for (const [key, payload] of Object.entries(manualOverridesRaw)) {
+      const value = payload && Object.prototype.hasOwnProperty.call(payload, 'value')
+        ? payload.value
+        : payload;
+      const profileKey = mapSettingKeyToProfileKey(key);
+      manualOverrides[profileKey] = value;
+    }
+
+    const mlProfile = user.mlProfile?.mergedProfile || {};
+    const rawProfile = {
+      ...mlProfile,
+      ...preferenceOverrides,
+      ...manualOverrides
+    };
+    const effectiveProfile = {};
+
+    for (const [profileKey, value] of Object.entries(rawProfile)) {
+      effectiveProfile[profileKey] = resolveProfileValue(profileKey, value);
+    }
+
+    res.json({
+      success: true,
+      userId,
+      source: 'trial-based',
+      effectiveProfile,
+      rawProfile,
+      sources: {
+        mlProfile,
+        trialOverrides: preferenceOverrides,
+        manualOverrides
+      },
+      meta: {
+        lockedSettings,
+        preferenceCount: preferences.length
+      }
+    });
+  } catch (error) {
+    console.error('[Personalization API] Effective profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
@@ -284,8 +439,7 @@ router.post('/revert', async (req, res) => {
     console.log(`[Personalization] REVERT signal from userId=${userId}, sessionId=${sessionId}, reason=${reason}`);
 
     // Clear cached personalization to force new selection
-    const cacheKey = `${userId}_${req.body.clientDomain || 'default'}`;
-    sessionCache.delete(cacheKey);
+    invalidateUserCache(userId);
     console.log(`[Personalization] Cleared cache for ${userId}`);
 
     // Record revert in profile (Week 3)
@@ -317,11 +471,12 @@ router.post('/revert', async (req, res) => {
       message: 'Reversion recorded. Switching to baseline.',
       newSettings: {
         variant: 'baseline',
-        fontSize: '16px',
-        lineHeight: 1.5,
-        contrast: 'normal',
-        spacing: 'normal',
-        targetSize: '44px',
+        font_size: 16,
+        line_height: 1.5,
+        contrast_mode: 'normal',
+        element_spacing_x: 8,
+        element_spacing_y: 8,
+        target_size: 44,
         theme: 'light',
       },
     });
@@ -345,13 +500,11 @@ router.delete('/cache/:userId', async (req, res) => {
     const { userId } = req.params;
     const { clientDomain } = req.query;
     
-    const cacheKey = `${userId}_${clientDomain || 'default'}`;
-    const existed = sessionCache.has(cacheKey);
-    sessionCache.delete(cacheKey);
+    invalidateUserCache(userId);
     
     res.json({
       success: true,
-      message: existed ? 'Cache cleared' : 'No cache found',
+      message: 'Cache cleared',
       userId,
     });
   } catch (error) {

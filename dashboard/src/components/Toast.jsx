@@ -4,7 +4,7 @@ function Toast({ show, message, type = 'success' }) {
   if (!show) return null;
 
   const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
-  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+  const icon = type === 'success' ? '' : type === 'error' ? '' : 'ℹ';
 
   return (
     <div className="toast toast-top toast-end z-50">

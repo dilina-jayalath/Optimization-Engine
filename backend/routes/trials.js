@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Trial, PreferenceState } = require('../mongodb/schemas');
+const { Trial, PreferenceState, User } = require('../mongodb/schemas');
 const { 
   SETTING_LADDERS, 
   TRIAL_PRIORITIES, 
@@ -12,6 +12,10 @@ const {
   getValueIndex
 } = require('../config/ladders');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
+
+// RL Service URL
+const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
 /**
  * Trial Management API
@@ -21,10 +25,11 @@ const { v4: uuidv4 } = require('uuid');
 /**
  * POST /api/trials/propose
  * Get next trial proposal based on ML suggestion and user state
+ * Now integrates with RL model to get intelligent suggestions!
  */
 router.post('/propose', async (req, res) => {
   try {
-    const { userId, sessionId, mlSuggestedProfile, context } = req.body;
+    let { userId, sessionId, mlSuggestedProfile, context } = req.body;
 
     console.log(`[Trial] Proposing trial for userId=${userId}`);
 
@@ -33,6 +38,71 @@ router.post('/propose', async (req, res) => {
     const preferenceMap = new Map(
       preferences.map(p => [p.settingKey, p])
     );
+
+    // If no ML suggestion provided, get from RL model
+    if (!mlSuggestedProfile) {
+      console.log('[Trial] No ML suggestion provided - calling RL model...');
+      
+      try {
+        // Get current user state
+        const currentSettings = {};
+        for (const priority of TRIAL_PRIORITIES) {
+          const pref = preferenceMap.get(priority);
+          const ladder = getLadder(priority);
+          currentSettings[priority] = pref ? pref.currentValue : ladder.default;
+        }
+
+        // Call RL model for suggestions
+        const rlResponse = await axios.post(`${PYTHON_RL_URL}/rl/suggest`, {
+          userId,
+          currentSettings,
+          context: context || {}
+        }, { timeout: 5000 });
+
+        mlSuggestedProfile = rlResponse.data.suggestions || {};
+        console.log('[Trial] RL model suggestions:', mlSuggestedProfile);
+        
+        // If RL returned no suggestions, force exploration for new users
+        if (Object.keys(mlSuggestedProfile).length === 0) {
+          console.log('[Trial] No RL suggestions, forcing exploration...');
+          for (const priority of TRIAL_PRIORITIES) {
+            const pref = preferenceMap.get(priority);
+            const ladder = getLadder(priority);
+            if (!pref || !pref.locked) {
+              const currentValue = pref ? pref.currentValue : ladder.default;
+              const currentIdx = ladder.values.indexOf(currentValue);
+              const nextIdx = (currentIdx + 1) % ladder.values.length;
+              const nextValue = ladder.values[nextIdx];
+              if (nextValue !== currentValue) {
+                mlSuggestedProfile[priority] = nextValue;
+                console.log(`[Trial] Exploration: ${priority} ${currentValue} → ${nextValue}`);
+                break;
+              }
+            }
+          }
+        }
+        
+      } catch (rlError) {
+        console.log('[Trial] RL model unavailable, using exploration strategy');
+        // Fallback: suggest next value on ladder for first unlocked setting
+        mlSuggestedProfile = {};
+        for (const priority of TRIAL_PRIORITIES) {
+          const pref = preferenceMap.get(priority);
+          const ladder = getLadder(priority);
+          if (!pref || !pref.locked) {
+            const currentValue = pref ? pref.currentValue : ladder.default;
+            const currentIdx = ladder.values.indexOf(currentValue);
+            const nextIdx = (currentIdx + 1) % ladder.values.length;
+            const nextValue = ladder.values[nextIdx];
+            if (nextValue !== currentValue) {
+              mlSuggestedProfile[priority] = nextValue;
+              console.log(`[Trial] Fallback exploration: ${priority} ${currentValue} → ${nextValue}`);
+              break;
+            }
+          }
+        }
+      }
+    }
 
     // Find which setting to trial (pick highest priority unlocked setting)
     let proposedSetting = null;
@@ -107,6 +177,13 @@ router.post('/start', async (req, res) => {
       attemptNumber 
     } = req.body;
 
+    if (!userId || !sessionId || !settingKey || !oldValue || !newValue) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: userId, sessionId, settingKey, oldValue, newValue'
+      });
+    }
+
     console.log(`[Trial] Starting trial: ${settingKey} ${oldValue} → ${newValue}`);
 
     // Create trial record
@@ -178,6 +255,11 @@ router.post('/evaluate', async (req, res) => {
     // Calculate anomaly score
     const anomalyScore = calculateAnomalyScore(metrics);
 
+    const pref = await PreferenceState.findOne({
+      userId: trial.userId,
+      settingKey: trial.settingKey
+    });
+
     // Determine decision
     let decision;
     let shouldPrompt = false;
@@ -190,18 +272,13 @@ router.post('/evaluate', async (req, res) => {
       decision = 'revert';
     } else {
       // Moderate anomaly - check if we should prompt
-      const pref = await PreferenceState.findOne({
-        userId: trial.userId,
-        settingKey: trial.settingKey
-      });
-
       const contextKey = trial.context?.pageType || 'default';
       const negativeCount = pref?.negativeCountInContext?.get(contextKey) || 0;
 
       // Check cooldowns
-      const canPrompt = checkPromptCooldowns(pref, trial);
+      const canPrompt = await checkPromptCooldowns(pref, trial);
 
-      if (canPrompt && (negativeCount >= 1 || anomalyScore > 0.5)) {
+      if (canPrompt && (negativeCount >= 2 || anomalyScore > 0.5)) {
         decision = 'prompt';
         shouldPrompt = true;
       } else {
@@ -214,6 +291,9 @@ router.post('/evaluate', async (req, res) => {
     trial.anomalyScore = anomalyScore;
     trial.decision = decision;
     trial.status = shouldPrompt ? 'awaiting_feedback' : 'completed';
+    if (shouldPrompt) {
+      trial.promptedAt = new Date();
+    }
     trial.endTime = new Date();
     await trial.save();
 
@@ -231,9 +311,10 @@ router.post('/evaluate', async (req, res) => {
       
       // Increment negative count for context
       const contextKey = trial.context?.pageType || 'default';
-      updateData[`negativeCountInContext.${contextKey}`] = 
-        (await PreferenceState.findOne({ userId: trial.userId, settingKey: trial.settingKey }))
-          ?.negativeCountInContext?.get(contextKey) + 1 || 1;
+      const currentNegativeCount = pref?.negativeCountInContext?.get(contextKey) || 0;
+      updateData[`negativeCountInContext.${contextKey}`] = currentNegativeCount + 1;
+    } else if (decision === 'prompt') {
+      updateData.lastPromptAt = new Date();
     }
 
     await PreferenceState.findOneAndUpdate(
@@ -267,7 +348,7 @@ router.post('/evaluate', async (req, res) => {
  */
 router.post('/feedback', async (req, res) => {
   try {
-    const { trialId, feedbackType, reason } = req.body;
+    const { trialId, feedbackType, reason, overrideValue } = req.body;
 
     console.log(`[Trial] Feedback for ${trialId}: ${feedbackType} (${reason})`);
 
@@ -279,26 +360,87 @@ router.post('/feedback', async (req, res) => {
       });
     }
 
+    const feedbackReason = feedbackType === 'manual' ? 'manual' : (reason || 'other');
+
     // Update trial with feedback
     trial.feedback = {
       given: true,
       type: feedbackType,
-      reason: reason || 'other',
+      reason: feedbackReason,
       timestamp: new Date()
     };
     trial.status = 'completed';
     await trial.save();
 
+    // Train RL model with feedback
+    try {
+      const reward = feedbackType === 'like' ? 1.0 : 
+                     feedbackType === 'dislike' ? -0.5 : 0.0;
+      
+      console.log(`[Trial] Training RL model with reward=${reward}`);
+      
+      await axios.post(`${PYTHON_RL_URL}/rl/feedback`, {
+        userId: trial.userId,
+        parameter: trial.settingKey,
+        action: trial.newValue,
+        reward,
+        state: {
+          oldValue: trial.oldValue,
+          newValue: trial.newValue,
+          feedbackType,
+          reason
+        }
+      }, { timeout: 3000 });
+      
+      console.log('[Trial] RL model trained successfully');
+    } catch (rlError) {
+      console.log('[Trial] RL model training failed (non-critical):', rlError.message);
+    }
+
     // Update preference state
-    const pref = await PreferenceState.findOne({
+    let pref = await PreferenceState.findOne({
       userId: trial.userId,
       settingKey: trial.settingKey
     });
 
+    if (!pref) {
+      pref = new PreferenceState({
+        userId: trial.userId,
+        settingKey: trial.settingKey,
+        currentValue: trial.newValue,
+        currentIndex: getValueIndex(trial.settingKey, trial.newValue)
+      });
+    }
+
     let nextSuggestion = null;
     let shouldLock = false;
 
-    if (feedbackType === 'like') {
+    pref.feedbackCount = (pref.feedbackCount || 0) + 1;
+    pref.lastPromptAt = new Date();
+
+    if (feedbackType === 'manual') {
+      const chosenValue = overrideValue || trial.newValue;
+      const chosenIndex = getValueIndex(trial.settingKey, chosenValue);
+
+      if (chosenIndex === -1) {
+        return res.status(400).json({
+          success: false,
+          error: 'overrideValue must be one of the setting ladder values'
+        });
+      }
+
+      pref.preferredValue = chosenValue;
+      pref.preferredIndex = chosenIndex;
+      pref.currentValue = chosenValue;
+      pref.currentIndex = chosenIndex;
+      pref.locked = true;
+      pref.successfulTrials += 1;
+      shouldLock = true;
+
+      await upsertManualOverride(trial.userId, trial.settingKey, chosenValue);
+
+      console.log(`[Trial] Manual override locked ${trial.settingKey} at ${chosenValue}`);
+    } else if (feedbackType === 'like') {
       // User likes this value - lock it
       pref.preferredValue = trial.newValue;
       pref.preferredIndex = getValueIndex(trial.settingKey, trial.newValue);
@@ -311,8 +453,6 @@ router.post('/feedback', async (req, res) => {
     } else if (feedbackType === 'dislike') {
       // User dislikes - try next value based on reason
       pref.failedTrials += 1;
-      pref.feedbackCount += 1;
-      pref.lastPromptAt = new Date();
 
       // Check if we've hit max retries
       if (pref.trialCount >= COOLDOWN_CONFIG.maxRetriesPerSetting + 1) {
@@ -451,35 +591,96 @@ function calculateAnomalyScore(metrics) {
   return Math.min(score, 1.0);
 }
 
-function checkPromptCooldowns(preferenceState, trial) {
-  if (!preferenceState) return true;
-
+async function checkPromptCooldowns(preferenceState, trial) {
   const now = new Date();
 
-  // Check global cooldown
-  if (preferenceState.cooldownUntil && now < preferenceState.cooldownUntil) {
-    return false;
+  if (preferenceState) {
+    // Check global cooldown
+    if (preferenceState.cooldownUntil && now < preferenceState.cooldownUntil) {
+      return false;
+    }
+
+    // Check last prompt time
+    if (preferenceState.lastPromptAt) {
+      const timeSinceLastPrompt = now - preferenceState.lastPromptAt;
+      if (timeSinceLastPrompt < COOLDOWN_CONFIG.minPromptInterval) {
+        return false;
+      }
+    }
+
+    // Check max retries
+    if (preferenceState.trialCount >= COOLDOWN_CONFIG.maxRetriesPerSetting + 1) {
+      return false;
+    }
+
+    // Check dismiss count
+    if (preferenceState.dismissCount >= 3) {
+      return false; // User clearly doesn't want prompts
+    }
   }
 
-  // Check last prompt time
-  if (preferenceState.lastPromptAt) {
-    const timeSinceLastPrompt = now - preferenceState.lastPromptAt;
-    if (timeSinceLastPrompt < COOLDOWN_CONFIG.minPromptInterval) {
+  // Check per-session prompt limit
+  if (COOLDOWN_CONFIG.maxPromptsPerSession && trial.sessionId) {
+    const sessionPromptCount = await Trial.countDocuments({
+      userId: trial.userId,
+      sessionId: trial.sessionId,
+      decision: 'prompt',
+      trialId: { $ne: trial.trialId }
+    });
+
+    if (sessionPromptCount >= COOLDOWN_CONFIG.maxPromptsPerSession) {
       return false;
     }
   }
 
-  // Check max retries
-  if (preferenceState.trialCount >= COOLDOWN_CONFIG.maxRetriesPerSetting + 1) {
-    return false;
-  }
+  // Never prompt on the same page twice
+  const pageType = trial.context?.pageType;
+  if (pageType) {
+    const pagePromptCount = await Trial.countDocuments({
+      userId: trial.userId,
+      'context.pageType': pageType,
+      decision: 'prompt',
+      trialId: { $ne: trial.trialId }
+    });
 
-  // Check dismiss count
-  if (preferenceState.dismissCount >= 3) {
-    return false; // User clearly doesn't want prompts
+    if (pagePromptCount > 0) {
+      return false;
+    }
   }
 
   return true;
+}
+
+function mapSettingKeyToProfileKey(settingKey) {
+  const map = {
+    'visual.fontSize': 'font_size',
+    'visual.lineHeight': 'line_height',
+    'visual.theme': 'theme',
+    'visual.contrast': 'contrast_mode',
+    'layout.spacing': 'element_spacing_x',
+    'motor.targetSize': 'target_size'
+  };
+
+  return map[settingKey] || settingKey;
+}
+
+async function upsertManualOverride(userId, settingKey, value) {
+  const profileKey = mapSettingKeyToProfileKey(settingKey);
+  const overridePath = `manualOverrides.${profileKey}`;
+
+  await User.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        [overridePath]: {
+          value,
+          timestamp: new Date(),
+          reason: 'manual_override'
+        }
+      }
+    },
+    { upsert: true }
+  );
 }
 
 module.exports = router;

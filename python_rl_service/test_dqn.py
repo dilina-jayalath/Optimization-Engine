@@ -191,11 +191,11 @@ if __name__ == "__main__":
         test_save_model()
         
         print("\n" + "=" * 60)
-        print("✅ All tests completed successfully!")
+        print(" All tests completed successfully!")
         print("=" * 60)
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n Error: {e}")
         print("\nMake sure Python DQN service is running:")
         print("  cd python_rl_service")
         print("  python app.py")

@@ -1,8 +1,8 @@
 # Adaptive UI Optimization Engine
 
-## 🎯 Two Personalization Systems
+## 🎯 Three Personalization Systems
 
-This project implements **two complementary personalization approaches**:
+This project implements **three complementary personalization approaches**:
 
 ### 1. Thompson Sampling System (Weeks 2-4)
 - **Type**: Continuous multi-arm bandit optimization
@@ -10,17 +10,25 @@ This project implements **two complementary personalization approaches**:
 - **Feedback**: Binary (👍/👎) after 30s delay
 - **Use Case**: General personalization & learning
 
-### 2. Trial-Based System (NEW - ✅ Phase 1 Complete)
+### 2. Trial-Based System (Phase 1 Complete)
 - **Type**: Anomaly-driven bounded search with preference locking
 - **Approach**: Tests one setting at a time, only when problems detected
 - **Feedback**: Directional (too big/small/other)
 - **Use Case**: Safe testing of ML suggestions + preference discovery
 
-> **Current Focus**: Trial-Based System (avoids duplication with group member's ML engine)
+### 3. Real-Time Settings Sync (NEW - ✅ Complete)
+- **Type**: Dashboard-to-website instant synchronization
+- **Approach**: Server-Sent Events (SSE) push updates
+- **Feedback**: Immediate user reaction (👍/😐/👎)
+- **Use Case**: Manual settings changes apply instantly to all client websites
+
+> **Latest Feature**: Real-time sync allows dashboard changes to instantly apply to websites (like NovaCart) with automatic feedback collection.
 
 ---
 
-## 🚀 Quick Start - Trial-Based System
+## 🚀 Quick Start
+
+### Trial-Based System
 
 ```bash
 # 1. Start backend
@@ -32,11 +40,28 @@ node test-trial-system.js
 # Expected: ✅ All tests passed!
 ```
 
+### Real-Time Settings Sync
+
+```bash
+# 1. Start backend
+node backend/api.js
+
+# 2. Start NovaCart (in another terminal)
+cd novacart && npm run dev
+
+# 3. Start Dashboard (in another terminal)
+cd dashboard && npm run dev
+
+# 4. Change settings in dashboard → Watch NovaCart update instantly!
+```
+
 **Documentation**:
-- 📘 [Complete Guide](TRIAL_BASED_SYSTEM.md) - Full system explanation
-- 📊 [System Flow](SYSTEM_FLOW_DIAGRAM.md) - Visual diagrams
-- ✅ [Checklist](CHECKLIST.md) - Implementation status
-- ⚡ [Quick Reference](QUICK_REFERENCE.md) - Commands & API
+- 📘 [Trial System Guide](TRIAL_BASED_SYSTEM.md) - Complete trial-based system
+- 🔄 [Settings Sync Guide](REALTIME_SETTINGS_SYNC.md) - Real-time sync documentation
+- 📊 [Architecture Diagram](SETTINGS_SYNC_DIAGRAM.md) - Visual flow diagram
+- ⚡ [Quick Test](QUICK_TEST_SETTINGS_SYNC.md) - Step-by-step testing
+- 🔌 [Integration Guide](INTEGRATION_GUIDE.md) - Use in your project
+- 📋 [Implementation Summary](IMPLEMENTATION_SUMMARY_SETTINGS_SYNC.md) - What was built
 
 ---
 
@@ -47,6 +72,7 @@ Your proprietary optimization engine that combines:
 - **Reinforcement Learning** (Q-Learning algorithm)
 - **Adaptive Optimization** (user feedback + manual overrides)
 - **User Dashboard** (undo/redo, analytics, settings management)
+- **Real-Time Sync** (SSE-based instant updates)
 
 ---
 

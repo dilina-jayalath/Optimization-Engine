@@ -83,70 +83,14 @@ router.post('/', async (req, res) => {
 
     console.log(`[Behavior API] Stored behavior log for session ${sessionId}`);
 
-    // Week 1: Call Python service to calculate reward
-    let rewardResult = null;
-    let rewardWarning = null;
-    try {
-      const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5001';
-      
-      const rewardResponse = await axios.post(`${PYTHON_SERVICE_URL}/calculate_reward`, {
-        sessionId,
-        userId,
-        duration: metrics.duration || 0,
-        interactionCount: metrics.interactionCount || 0,
-        errorCount: metrics.errorCount || 0,
-        scrollDepth: metrics.scrollDepth || 0,
-        tasksCompleted: metrics.tasksCompleted || 0,
-        immediateReversion: metrics.immediateReversion || false,
-      });
+    // Phase 2: Behavior data is stored for analytics
+    // Trial evaluation happens via /api/trials/evaluate endpoint
+    // No legacy reward calculation or Thompson Sampling calls needed
 
-      if (rewardResponse.data.success) {
-        const { reward, confidence } = rewardResponse.data;
-        
-        // Store reward in behavior log
-        behaviorLog.reward = reward;
-        behaviorLog.confidence = confidence;
-        await behaviorLog.save();
-
-        console.log(`[Behavior API] Calculated reward for session ${sessionId}: ${reward.toFixed(3)} (confidence: ${confidence.toFixed(3)})`);
-        rewardResult = { reward, confidence };
-      } else {
-        throw new Error('Python service failed to calculate reward');
-      }
-    } catch (rewardError) {
-      console.error(`[Behavior API] Failed to calculate reward: ${rewardError.message}`);
-      rewardWarning = 'Reward calculation unavailable';
-    }
-
-    // Week 2: Send behavior feedback to Thompson Sampling service (non-blocking)
-    try {
-      const personalizationSessionId = req.body.personalizationSessionId || sessionId;
-      await axios.post(`${PERSONALIZATION_SERVICE_URL}/feedback`, {
-        sessionId: personalizationSessionId,
-        userId,
-        metrics: {
-          duration: metrics?.duration || 0,
-          interactionCount: metrics?.interactionCount || 0,
-          errorCount: metrics?.errorCount || 0,
-          scrollDepth: metrics?.scrollDepth || 0,
-          tasksCompleted: metrics?.tasksCompleted || 0,
-          immediateReversion: metrics?.immediateReversion || false,
-        },
-      });
-    } catch (personalizationError) {
-      console.error(`[Behavior API] Failed to send feedback to personalization service: ${personalizationError.message}`);
-    }
-
-    // Still return success for storing behavior data
     res.json({
       success: true,
       sessionId,
-      message: rewardResult
-        ? 'Behavior data received and reward calculated'
-        : 'Behavior data received (reward calculation failed)',
-      reward: rewardResult ? rewardResult.reward : undefined,
-      confidence: rewardResult ? rewardResult.confidence : undefined,
-      warning: rewardWarning || undefined,
+      message: 'Behavior data received and stored',
     });
 
   } catch (error) {

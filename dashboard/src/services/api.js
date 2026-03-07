@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+if (!API_BASE_URL) {
+  console.warn("VITE_API_URL is not defined in .env! Things may break.");
+}
 
 export async function fetchUserData(userId) {
   try {
@@ -12,11 +15,11 @@ export async function fetchUserData(userId) {
     return {
       userId,
       currentSettings: {
-        font_size: 'large',
-        theme: 'dark',
-        contrast_mode: 'high',
-        line_height: 1.6,
-        target_size: 28
+        font_size: 16,
+        theme: 'light',
+        contrast_mode: 'normal',
+        line_height: 1.5,
+        target_size: 32
       },
       mlProfile: {},
       lastActive: new Date().toISOString()
@@ -75,6 +78,36 @@ export async function clearHistory(userId) {
     return response.data;
   } catch (error) {
     console.error('Error clearing history:', error);
+    throw error;
+  }
+}
+
+export async function fetchEffectiveProfile(userId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/personalization/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching effective profile:', error);
+    throw error;
+  }
+}
+
+export async function fetchTrialPreferences(userId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/trials/preferences/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching trial preferences:', error);
+    throw error;
+  }
+}
+
+export async function updateManualSettings(userId, settings) {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/manual-settings/${userId}`, settings);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating manual settings:', error);
     throw error;
   }
 }
