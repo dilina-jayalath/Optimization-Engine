@@ -23,6 +23,25 @@ const dbService = new RLMongoDBService();
 // Python DQN Service URL
 const PYTHON_RL_URL = process.env.PYTHON_RL_URL;
 
+// Extension backend URL (for userId validation)
+const EXTENSION_SERVER_URL = process.env.EXTENSION_SERVER_URL || 'http://localhost:3000';
+
+/**
+ * Validate a userId against the Extension backend.
+ * Returns true if the user exists, false otherwise.
+ */
+async function validateUserWithExtension(userId) {
+  if (!userId || userId === 'guest' || userId === 'anonymous') return false;
+  try {
+    const response = await axios.get(`${EXTENSION_SERVER_URL}/api/auth/validate/${userId}`, { timeout: 3000 });
+    return response.data && response.data.valid === true;
+  } catch (error) {
+    console.warn('[UserValidation] Extension server unreachable, allowing userId:', userId);
+    // Fail-open: if extension server is down, allow the request so the system doesn't break
+    return true;
+  }
+}
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -1139,13 +1158,26 @@ app.get('/api/health', (req, res) => {
 
 /**
  * POST /api/users
- * Create new user
+ * Create new user (validated against Extension backend — no personal data stored)
  */
 app.post('/api/users', async (req, res) => {
   try {
-    const { userId, name, email } = req.body;
-    
-    // Check if user exists
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+
+    // Validate userId exists in the Extension backend
+    const isValid = await validateUserWithExtension(userId);
+    if (!isValid) {
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid userId — user not found in authentication service'
+      });
+    }
+
+    // Check if user already exists in optimization DB
     let user = await dbService.getUser(userId);
     if (user) {
       return res.status(400).json({

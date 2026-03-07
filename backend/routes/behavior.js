@@ -23,6 +23,20 @@ const behaviorLogSchema = new mongoose.Schema({
     scrollDepth: { type: Number, default: 0 },
     tasksCompleted: { type: Number, default: 0 },
     immediateReversion: { type: Boolean, default: false },
+    // Anomaly detection metrics
+    clickCount: { type: Number, default: 0 },
+    misclickCount: { type: Number, default: 0 },
+    rageClickCount: { type: Number, default: 0 },
+    avgTimeToClick: { type: Number, default: 0 },
+    formErrorCount: { type: Number, default: 0 },
+    zoomEventCount: { type: Number, default: 0 },
+    // GDPR-compliant tracking
+    mouseDistance: { type: Number, default: 0 },
+    mouseMovingTime: { type: Number, default: 0 },
+    focusCount: { type: Number, default: 0 },
+    blurCount: { type: Number, default: 0 },
+    viewportWidth: { type: Number, default: 0 },
+    viewportHeight: { type: Number, default: 0 },
   },
   
   settingChanges: [{
