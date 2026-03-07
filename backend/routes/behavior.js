@@ -65,6 +65,15 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (userId === 'guest') {
+      console.log(`[Behavior API] Ignoring behavior data for guest user (session=${sessionId})`);
+      return res.json({
+        success: true,
+        sessionId,
+        message: 'Behavior data ignored for guest user',
+      });
+    }
+
     console.log(`[Behavior API] Received data for session=${sessionId}, userId=${userId}`);
 
     // Store in MongoDB
@@ -111,6 +120,15 @@ router.get('/:userId/sessions', async (req, res) => {
   try {
     const { userId } = req.params;
     const limit = parseInt(req.query.limit) || 50;
+    
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        count: 0,
+        sessions: [],
+      });
+    }
 
     const sessions = await BehaviorLog.find({ userId })
       .sort({ timestamp: -1 })
@@ -140,6 +158,21 @@ router.get('/:userId/sessions', async (req, res) => {
 router.get('/:userId/summary', async (req, res) => {
   try {
     const { userId } = req.params;
+    
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        summary: {
+          totalSessions: 0,
+          totalDuration: 0,
+          totalInteractions: 0,
+          totalErrors: 0,
+          averageScrollDepth: 0,
+          immediateReversionCount: 0,
+        },
+      });
+    }
 
     const sessions = await BehaviorLog.find({ userId });
 
@@ -178,6 +211,20 @@ router.get('/:userId/revert-stats', async (req, res) => {
   try {
     const { userId } = req.params;
     const windowDays = parseInt(req.query.windowDays) || 30;
+    
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        windowDays,
+        totalSessions: 0,
+        revertCount: 0,
+        revertRate: 0,
+        averageReward: null,
+        lastRevertAt: null,
+      });
+    }
+
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
     const logs = await BehaviorLog.find({ userId, timestamp: { $gte: since } }).sort({ timestamp: -1 });

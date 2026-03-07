@@ -16,7 +16,7 @@ const mongoose = require('mongoose');
 const axios = require('axios');
 const router = express.Router();
 
-const RL_SERVICE_URL = process.env.RL_SERVICE_URL;
+const RL_SERVICE_URL = process.env.RL_SERVICE_URL || process.env.PYTHON_RL_URL || 'http://localhost:8000';
 
 // Reference to BehaviorLog from behavior.js
 const BehaviorLog = mongoose.models.BehaviorLog || 
@@ -156,6 +156,18 @@ router.post('/analyze-and-optimize', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'userId is required'
+      });
+    }
+
+    if (userId === 'guest') {
+      console.log(`[Behavior RL] Ignoring analysis request for guest user`);
+      return res.json({
+        success: true,
+        message: 'Behavior RL optimization is disabled for guest users',
+        logsAnalyzed: 0,
+        trainingResults: [],
+        optimizationSuggestions: [],
+        difficultyDetected: false
       });
     }
 
@@ -329,6 +341,22 @@ router.post('/analyze-and-optimize', async (req, res) => {
 router.get('/summary/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        userId,
+        summary: {
+          totalLogs: 0,
+          logsWithRewards: 0,
+          averageReward: null,
+          positiveRewards: 0,
+          negativeRewards: 0,
+          averageConfidence: null,
+          recentImmedateReversions: 0
+        }
+      });
+    }
 
     const logs = await BehaviorLog.find({ userId }).sort({ timestamp: -1 }).limit(50);
 

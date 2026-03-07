@@ -6,7 +6,14 @@ const router = express.Router();
 const axios = require('axios');
 const { Feedback, OptimizationEvent } = require('../mongodb/schemas');
 
-const RL_SERVICE_URL = process.env.RL_SERVICE_URL;
+const RL_SERVICE_URL = process.env.RL_SERVICE_URL || process.env.PYTHON_RL_URL || 'http://localhost:8000';
+
+// Guest user IDs that should be rejected from RL operations
+const GUEST_IDS = ['guest', 'anonymous', 'anon', 'unknown'];
+function isGuestUser(userId) {
+  if (!userId) return true;
+  return GUEST_IDS.includes(String(userId).trim().toLowerCase());
+}
 
 /**
  * POST /api/rl-feedback/submit
@@ -25,6 +32,11 @@ router.post('/submit', async (req, res) => {
       mlConfidence,      // ML confidence score (0-1)
       metadata = {}
     } = req.body;
+
+    // Reject guest users from RL feedback
+    if (isGuestUser(userId)) {
+      return res.json({ success: false, message: 'Guest users cannot submit RL feedback' });
+    }
 
     console.log('\n💬 [RL FEEDBACK] User feedback received:');
     console.log('   User:', userId);
@@ -106,6 +118,11 @@ router.post('/submit', async (req, res) => {
 router.post('/get-suggestion', async (req, res) => {
   try {
     const { userId, currentSettings, parameter, currentValue } = req.body;
+
+    // Reject guest users from RL suggestions
+    if (isGuestUser(userId)) {
+      return res.json({ success: false, message: 'Guest users cannot receive RL suggestions' });
+    }
 
     console.log('\n🎯 [RL FEEDBACK] Requesting suggestion from RL model...');
     console.log('   User:', userId);
@@ -214,6 +231,11 @@ router.post('/component-issue', async (req, res) => {
       comment, 
       context: feedbackContext // Renamed to avoid confusion
     } = req.body;
+
+    // Reject guest users from component feedback
+    if (isGuestUser(userId)) {
+      return res.json({ success: false, message: 'Guest users cannot submit component feedback' });
+    }
 
     console.log(`[RL Feedback] 🐛 Component Issue Reported:`, { userId, componentId, issue });
 

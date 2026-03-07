@@ -94,6 +94,18 @@ router.get('/', async (req, res) => {
       });
     }
 
+    // Guest users should not receive RL/optimization personalization
+    const guestIds = ['guest', 'anonymous', 'anon', 'unknown'];
+    if (guestIds.includes(String(userId).trim().toLowerCase())) {
+      return res.json({
+        success: true,
+        userId,
+        guest: true,
+        settings: null,
+        message: 'Guest users do not receive personalization. Install the extension and log in.',
+      });
+    }
+
     console.log(`[Personalization] Request for userId=${userId}, domain=${clientDomain || 'unknown'}, mode=${mode}`);
 
     // PRIORITY 1: Check for manual settings (user dashboard overrides)

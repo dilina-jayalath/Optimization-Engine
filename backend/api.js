@@ -472,6 +472,16 @@ app.post('/api/users/:userId/qtables/:parameter/update', async (req, res) => {
     const { userId, parameter } = req.params;
     const { state, action, value } = req.body;
     
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        data: {
+          parameter,
+          totalUpdates: 0
+        }
+      });
+    }
+
     const qTable = await dbService.updateQValue(userId, parameter, state, action, value);
     
     res.json({
@@ -495,6 +505,18 @@ app.get('/api/users/:userId/qtables/:parameter/best-action', async (req, res) =>
     const { userId, parameter } = req.params;
     const { state } = req.query;
     
+    if (userId === 'guest') {
+      return res.json({
+        success: true,
+        data: {
+          action: 'default', // Fallback guest
+          qValue: 0,
+          epsilon: 1.0,
+          source: 'guest_fallback'
+        }
+      });
+    }
+
     // Try to get recommendation from Python DQN first
     try {
       const user = await dbService.getUser(userId);
@@ -573,7 +595,22 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       state = req.body.state;
     }
     
-    console.log(' Received feedback:', { parameter, currentValue, feedbackType: feedback.type });
+    console.log(` Received feedback for ${userId}:`, { parameter, currentValue, feedbackType: feedback.type });
+
+    if (userId === 'guest') {
+      console.log(' Ignoring feedback for guest user.');
+      return res.json({
+        success: true,
+        data: {
+          feedbackId: 'guest_feedback',
+          reward: 0,
+          currentValue: currentValue,
+          updatedSettings: null,
+          nextSuggestion: null,
+          trainingStats: null
+        }
+      });
+    }
     
     // Calculate enhanced reward based on feedback
     const reward = calculateEnhancedReward(feedback, context);
