@@ -298,6 +298,24 @@ router.post('/apply', async (req, res) => {
 
     console.log(`[Manual Settings] Quick apply for userId=${userId}`, newSettings);
 
+    // Resolve string spacing preset tokens to numeric pixel values
+    const SPACING_PRESETS = { compact: 4, normal: 8, default: 8, wide: 12, comfortable: 12, spacious: 16 };
+    if (typeof newSettings.spacing === 'string') {
+      const resolved = SPACING_PRESETS[newSettings.spacing] ?? 8;
+      newSettings.element_spacing_x = resolved;
+      newSettings.element_spacing_y = resolved;
+      delete newSettings.spacing;
+    }
+    // Coerce element_spacing_x/y to numbers if they arrived as strings
+    if (newSettings.element_spacing_x !== undefined) {
+      const n = Number(newSettings.element_spacing_x);
+      newSettings.element_spacing_x = Number.isNaN(n) ? (SPACING_PRESETS[newSettings.element_spacing_x] ?? 8) : n;
+    }
+    if (newSettings.element_spacing_y !== undefined) {
+      const n = Number(newSettings.element_spacing_y);
+      newSettings.element_spacing_y = Number.isNaN(n) ? (SPACING_PRESETS[newSettings.element_spacing_y] ?? 8) : n;
+    }
+
     // Update settings in database
     const settings = await ManualSettings.findOneAndUpdate(
       { userId },

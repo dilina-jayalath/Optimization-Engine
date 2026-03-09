@@ -180,7 +180,11 @@ const settingsHistorySchema = new mongoose.Schema({
     newValue: { type: mongoose.Schema.Types.Mixed, required: true },
     source: { 
       type: String, 
-      enum: ['rl_optimization', 'user_manual', 'ml_profile', 'reset', 'undo', 'redo', 'user_revert'],
+      enum: [
+        'rl_optimization', 'user_manual', 'ml_profile', 'reset', 'undo', 'redo', 'user_revert',
+        'extension', 'dashboard', 'ml', 'ml_suggestion_accepted', 'manual',
+        'rl', 'rule-based-fallback', 'revert', 'sse', 'category', 'fallback'
+      ],
       required: true 
     }
   },

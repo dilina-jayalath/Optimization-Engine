@@ -75,11 +75,28 @@ class RLMongoDBService {
         return settings || {};
       }
 
+      // Normalize string spacing tokens to numeric pixel values before DB write
+      const SPACING_PRESETS = { compact: 4, normal: 8, default: 8, wide: 12, comfortable: 12, spacious: 16 };
+      const normalized = { ...settings };
+      if (typeof normalized.spacing === 'string') {
+        const v = SPACING_PRESETS[normalized.spacing] ?? 8;
+        normalized.element_spacing_x = v;
+        normalized.element_spacing_y = v;
+        delete normalized.spacing;
+      }
+      const numericSpacingKeys = ['element_spacing_x', 'element_spacing_y', 'element_padding_x', 'element_padding_y'];
+      for (const key of numericSpacingKeys) {
+        if (normalized[key] !== undefined) {
+          const n = Number(normalized[key]);
+          normalized[key] = Number.isNaN(n) ? (SPACING_PRESETS[normalized[key]] ?? 8) : n;
+        }
+      }
+
       const user = await this.getUser(userId);
       const oldSettings = { ...user.currentSettings };
       
       // Update settings
-      user.currentSettings = { ...user.currentSettings, ...settings };
+      user.currentSettings = { ...user.currentSettings, ...normalized };
       user.updatedAt = new Date();
       await user.save();
       
