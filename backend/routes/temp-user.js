@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const MLPE_API_URL = process.env.MLPE_API_URL || process.env.MLPE_BACKEND_URL || 'http://localhost:8000';
+const MLPE_API_URL = process.env.MLPE_API_URL || process.env.MLPE_BACKEND_URL || 'https://aura-ml-backend-production-bdd3.up.railway.app';
 const TEMPLATE_CACHE_TTL_MS = Number(process.env.TEMP_TEMPLATE_CACHE_TTL_MS || 60000);
 const MIN_TEMPLATE_SAMPLES = Number(process.env.TEMP_TEMPLATE_MIN_SAMPLES || 5);
 const QUARANTINE_DEVIATION = Number(process.env.TEMP_USER_QUARANTINE_DEVIATION || 0.45);
