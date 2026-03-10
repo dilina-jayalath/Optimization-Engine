@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: optimization_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: optimization_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/optimization-engine
+      - PORT=5000
+      - PYTHON_RL_SERVICE_URL=http://python_rl:8000
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  python_rl:
+    build:
+      context: ./python_rl_service
+      dockerfile: Dockerfile
+    container_name: optimization_python_rl
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/optimization-engine
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: optimization_dashboard
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - python_rl
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
