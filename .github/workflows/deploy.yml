@@ -1,0 +1,117 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-and-push:
+    name: Build & Push to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Backend Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Optimization-Engine
+          file: ./Optimization-Engine/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/optimization-backend:latest
+
+      - name: Build and push Python RL Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Optimization-Engine/python_rl_service
+          file: ./Optimization-Engine/python_rl_service/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/optimization-python-rl:latest
+
+      - name: Build and push Dashboard Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Optimization-Engine/dashboard
+          file: ./Optimization-Engine/dashboard/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/optimization-dashboard:latest
+
+  deploy-to-vps:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Navigate to directory holding docker-compose.yml or create it
+            # To simplify, we'll assume the user places docker-compose.yml in ~/optimization-engine on their VPS
+            mkdir -p ~/optimization-engine
+            cd ~/optimization-engine
+            
+            # Create/update docker-compose.yml on the VPS
+            cat << 'EOF' > docker-compose.yml
+            version: '3.8'
+
+            services:
+              mongodb:
+                image: mongo:latest
+                container_name: optimization_mongodb
+                ports:
+                  - "27017:27017"
+                volumes:
+                  - mongodb_data:/data/db
+                restart: unless-stopped
+
+              backend:
+                image: ${{ secrets.DOCKER_USERNAME }}/optimization-backend:latest
+                container_name: optimization_backend
+                ports:
+                  - "5000:5000"
+                environment:
+                  - MONGODB_URI=mongodb://mongodb:27017/optimization-engine
+                  - PORT=5000
+                  - PYTHON_RL_SERVICE_URL=http://python_rl:8000
+                depends_on:
+                  - mongodb
+                restart: unless-stopped
+
+              python_rl:
+                image: ${{ secrets.DOCKER_USERNAME }}/optimization-python-rl:latest
+                container_name: optimization_python_rl
+                ports:
+                  - "8000:8000"
+                environment:
+                  - MONGODB_URI=mongodb://mongodb:27017/optimization-engine
+                depends_on:
+                  - mongodb
+                restart: unless-stopped
+
+              dashboard:
+                image: ${{ secrets.DOCKER_USERNAME }}/optimization-dashboard:latest
+                container_name: optimization_dashboard
+                ports:
+                  - "80:80"
+                depends_on:
+                  - backend
+                  - python_rl
+                restart: unless-stopped
+
+            volumes:
+              mongodb_data:
+            EOF
+            
+            # Pull latest images and restart containers
+            docker compose pull
+            docker compose up -d
