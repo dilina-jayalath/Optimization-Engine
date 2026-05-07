@@ -118,6 +118,17 @@ app.post('/api/users/:userId/settings', async (req, res) => {
   try {
     const { userId } = req.params;
     const { settings, source = 'user_manual' } = req.body;
+
+    if (source === 'extension') {
+      const user = await dbService.getUser(userId);
+      console.log(`[Settings] Ignored extension hydration write for ${userId}`);
+      return res.json({
+        success: true,
+        data: user.currentSettings,
+        ignored: true,
+        reason: 'extension_hydration_is_not_authoritative'
+      });
+    }
     
     const updatedSettings = await dbService.updateUserSettings(userId, settings, source);
     
@@ -174,6 +185,17 @@ app.post('/api/settings/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { settings, source = 'dashboard' } = req.body;
+
+    if (source === 'extension') {
+      const user = await dbService.getUser(userId);
+      console.log(`[Settings] Ignored extension hydration write for ${userId}`);
+      return res.json({
+        success: true,
+        data: user.currentSettings,
+        ignored: true,
+        reason: 'extension_hydration_is_not_authoritative'
+      });
+    }
 
     const updatedSettings = await dbService.updateUserSettings(userId, settings, source);
 
@@ -698,9 +720,17 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
     
     console.log(' RL Suggested:', nextSuggestion?.suggestedValue);
     
-    // Auto-apply RL suggestion to user settings
+    // Auto-apply RL suggestion to user settings only when the suggestion is
+    // explicitly marked safe to apply. Positive manual feedback is a learning
+    // signal, not permission to immediately overwrite the user's choice.
     let updatedSettings = null;
-    if (nextSuggestion && nextSuggestion.suggestedValue) {
+    const shouldApplySuggestion = Boolean(
+      nextSuggestion &&
+      nextSuggestion.suggestedValue !== undefined &&
+      nextSuggestion.shouldApply
+    );
+
+    if (shouldApplySuggestion) {
       // Update both current settings and RL suggested settings
       updatedSettings = await dbService.updateUserSettings(
         userId,
@@ -717,6 +747,15 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       });
       
       console.log(` Auto-applied RL suggestion: ${parameter} = ${nextSuggestion.suggestedValue}`);
+    } else {
+      updatedSettings = {
+        ...user.currentSettings,
+        [parameter]: currentValue
+      };
+      console.log(` RL suggestion not auto-applied for ${parameter}:`, {
+        suggestedValue: nextSuggestion?.suggestedValue,
+        shouldApply: nextSuggestion?.shouldApply
+      });
     }
     
     // Log event
@@ -725,7 +764,7 @@ app.post('/api/users/:userId/feedback', async (req, res) => {
       oldValue: currentValue,
       newValue: nextSuggestion?.suggestedValue,
       feedbackType: feedback.type,
-      autoApplied: true
+      autoApplied: shouldApplySuggestion
     });
     
     res.json({
