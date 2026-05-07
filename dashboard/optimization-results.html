@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA Optimization Results</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --panel-muted: #eef3fb;
+      --text: #16324f;
+      --subtle: #60748a;
+      --line: #d8e2ef;
+      --accent: #0f7b6c;
+      --accent-dark: #0b5f53;
+      --accent-soft: #dcf2ed;
+      --warning: #c06800;
+      --shadow: 0 18px 45px rgba(22, 50, 79, 0.10);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top left, #dff7f0 0, transparent 28%),
+        linear-gradient(180deg, #fbfdfd 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #153b5d 0%, #1c5f6f 62%, #0f7b6c 100%);
+      color: #fff;
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.10);
+      right: -90px;
+      top: -110px;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      letter-spacing: -0.03em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 740px;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.88);
+      position: relative;
+      z-index: 1;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(216, 226, 239, 0.85);
+    }
+
+    .controls {
+      padding: 22px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .results {
+      padding: 22px;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 0.93rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .hint {
+      font-size: 0.82rem;
+      color: var(--subtle);
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input[type="text"],
+    input[type="datetime-local"],
+    input[type="number"],
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(15, 123, 108, 0.12);
+    }
+
+    .toggle-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .toggle-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+    }
+
+    .toggle-btn.active {
+      background: var(--accent-soft);
+      border-color: rgba(15, 123, 108, 0.35);
+      color: var(--accent-dark);
+    }
+
+    .toggle-btn strong {
+      display: block;
+      font-size: 0.96rem;
+      margin-bottom: 3px;
+    }
+
+    .toggle-btn span {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--subtle);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .button-row button {
+      flex: 1 1 140px;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    .button-row button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .button-secondary {
+      background: #edf3f8;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .button-tertiary {
+      background: #fff7e9;
+      color: var(--warning);
+      font-weight: 700;
+      border: 1px solid #f3d3a4;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: var(--subtle);
+    }
+
+    .status.error {
+      color: #b53f3f;
+    }
+
+    .status.ok {
+      color: var(--accent-dark);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: var(--panel-muted);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(216, 226, 239, 0.75);
+    }
+
+    .stat-label {
+      font-size: 0.82rem;
+      color: var(--subtle);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      background: #f2f6fa;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .report-shell {
+      padding: 10px;
+      border-radius: 0;
+      border: 1px solid #2d2d2d;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f6f9fc;
+      font-size: 0.9rem;
+      color: var(--subtle);
+      font-weight: 700;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .report-table {
+      min-width: 0;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .report-table th,
+    .report-table td {
+      border: 1px solid #2d2d2d;
+      padding: 16px 18px;
+      text-align: center;
+      color: #151515;
+    }
+
+    .report-table th {
+      background: #fff;
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .report-table td:first-child,
+    .report-table th:first-child {
+      width: 34%;
+    }
+
+    .report-table td:first-child {
+      font-size: 1.05rem;
+      font-weight: 500;
+      line-height: 1.28;
+    }
+
+    .trend-negative {
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    .trend-positive {
+      color: #b35309;
+      font-weight: 700;
+    }
+
+    .users-section {
+      margin-top: 22px;
+    }
+
+    .users-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .user-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .user-card h3 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mini-table {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .mini-table th,
+    .mini-table td {
+      padding: 9px 10px;
+      font-size: 0.88rem;
+    }
+
+    .empty-state {
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      padding: 28px;
+      background: #fbfcfd;
+      text-align: center;
+      color: var(--subtle);
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 18px 14px 40px;
+      }
+
+      .hero,
+      .controls,
+      .results {
+        padding: 18px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toggle-row {
+        grid-template-columns: 1fr;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>Optimization Result Viewer</h1>
+      <p>
+        Mini reporting page for the optimization engine. It reads the analytics API and renders
+        the same before / after / improvement style output for a single user or all users.
+      </p>
+    </section>
+
+    <div class="layout">
+      <aside class="card controls">
+        <h2 class="section-title">Query Controls</h2>
+
+        <div class="toggle-row">
+          <button id="modeSingle" class="toggle-btn active" type="button">
+            <strong>Single User</strong>
+            <span>One user report</span>
+          </button>
+          <button id="modeAll" class="toggle-btn" type="button">
+            <strong>All Users</strong>
+            <span>Aggregate + breakdown</span>
+          </button>
+        </div>
+
+        <div class="field">
+          <label for="apiBase">API Base URL</label>
+          <input id="apiBase" type="text" placeholder="http://localhost:4000/api">
+          <div class="hint">Defaults to this server origin with `/api` appended.</div>
+        </div>
+
+        <div id="userField" class="field">
+          <label for="userId">User ID</label>
+          <input id="userId" type="text" placeholder="u_001">
+        </div>
+
+        <div class="field">
+          <label for="beforeEnd">Before End</label>
+          <input id="beforeEnd" type="datetime-local">
+          <div class="hint">Use this together with After Start for a shared comparison window.</div>
+        </div>
+
+        <div class="field">
+          <label for="afterStart">After Start</label>
+          <input id="afterStart" type="datetime-local">
+        </div>
+
+        <div class="field">
+          <label for="pivotAt">Pivot Time</label>
+          <input id="pivotAt" type="datetime-local">
+          <div class="hint">Optional alternative to before / after windows.</div>
+        </div>
+
+        <div id="limitField" class="field" style="display:none;">
+          <label for="limit">User Limit</label>
+          <input id="limit" type="number" min="1" step="1" placeholder="20">
+        </div>
+
+        <div class="button-row">
+          <button id="loadButton" class="button-primary" type="button">Load Results</button>
+          <button id="demoButton" class="button-tertiary" type="button">Use Demo Preset</button>
+          <button id="resetButton" class="button-secondary" type="button">Reset</button>
+        </div>
+
+        <div id="status" class="status"></div>
+      </aside>
+
+      <main class="card results">
+        <div id="content">
+          <div class="empty-state">
+            Run a query to view optimization metrics from the analytics API.
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      mode: 'single',
+    };
+
+    const elements = {
+      apiBase: document.getElementById('apiBase'),
+      userId: document.getElementById('userId'),
+      beforeEnd: document.getElementById('beforeEnd'),
+      afterStart: document.getElementById('afterStart'),
+      pivotAt: document.getElementById('pivotAt'),
+      limit: document.getElementById('limit'),
+      status: document.getElementById('status'),
+      content: document.getElementById('content'),
+      userField: document.getElementById('userField'),
+      limitField: document.getElementById('limitField'),
+      modeSingle: document.getElementById('modeSingle'),
+      modeAll: document.getElementById('modeAll'),
+      loadButton: document.getElementById('loadButton'),
+      demoButton: document.getElementById('demoButton'),
+      resetButton: document.getElementById('resetButton'),
+    };
+
+    const defaultApiBase = `${window.location.origin}/api`;
+    const demoPreset = {
+      beforeEnd: '2026-06-15T00:00',
+      afterStart: '2026-06-15T00:00',
+      pivotAt: '',
+      limit: '26',
+    };
+    elements.apiBase.value = 'http://4.194.234.251:4000/api';
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function toIso(value) {
+      if (!value) return null;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    }
+
+    function trimZeros(text) {
+      return String(text)
+        .replace(/(\.\d*?[1-9])0+(?=%|$)/g, '$1')
+        .replace(/\.0+(?=%|$)/g, '');
+    }
+
+    function formatMainValue(metric, phase) {
+      const value = metric?.[phase];
+      if (value == null) return '--';
+
+      if (metric.unit === 'rating') {
+        return Number(value).toFixed(1);
+      }
+
+      if (metric.unit === 'events_per_session') {
+        const rounded = Number.isInteger(value) ? String(value) : Number(value).toFixed(1);
+        return `${trimZeros(rounded)} events`;
+      }
+
+      const percent = value * 100;
+      const decimals = Number.isInteger(percent) ? 0 : 1;
+      return `${trimZeros(percent.toFixed(decimals))}%`;
+    }
+
+    function formatImprovement(metric) {
+      const value = metric?.improvement;
+      if (value == null) return '--';
+      const formatted = `${value > 0 ? '+' : ''}${(value * 100).toFixed(2)}%`;
+      return formatted;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      const single = mode === 'single';
+      elements.userField.style.display = single ? 'block' : 'none';
+      elements.limitField.style.display = single ? 'none' : 'block';
+      elements.modeSingle.classList.toggle('active', single);
+      elements.modeAll.classList.toggle('active', !single);
+    }
+
+    function setStatus(message, kind = '') {
+      elements.status.textContent = message || '';
+      elements.status.className = `status${kind ? ` ${kind}` : ''}`;
+    }
+
+    function buildQueryUrl() {
+      const base = (elements.apiBase.value || defaultApiBase).replace(/\/+$/, '');
+      const url = new URL(`${base}/analytics/optimization-impact`);
+
+      const beforeEnd = toIso(elements.beforeEnd.value);
+      const afterStart = toIso(elements.afterStart.value);
+      const pivotAt = toIso(elements.pivotAt.value);
+
+      if (state.mode === 'single') {
+        const userId = elements.userId.value.trim();
+        if (!userId) {
+          throw new Error('User ID is required for single-user mode.');
+        }
+        url.searchParams.set('userId', userId);
+      } else {
+        url.searchParams.set('includeAllUsers', 'true');
+        const limit = elements.limit.value.trim();
+        if (limit) {
+          url.searchParams.set('limit', limit);
+        }
+      }
+
+      if (beforeEnd) url.searchParams.set('beforeEnd', beforeEnd);
+      if (afterStart) url.searchParams.set('afterStart', afterStart);
+      if (pivotAt) url.searchParams.set('pivotAt', pivotAt);
+
+      return url.toString();
+    }
+
+    function renderMetricRows(metrics, options = {}) {
+      if (!Array.isArray(metrics) || metrics.length === 0) {
+        return '<tr><td colspan="4">No metric data available.</td></tr>';
+      }
+
+      return metrics.map((metric) => {
+        const improvement = options.reportStyle ? formatImprovement(metric) : (metric?.display?.improvement || '--');
+        const trendClass = improvement.startsWith('-') ? 'trend-negative' : 'trend-positive';
+        const beforeText = options.reportStyle ? formatMainValue(metric, 'before') : (metric?.display?.before || '--');
+        const afterText = options.reportStyle ? formatMainValue(metric, 'after') : (metric?.display?.after || '--');
+
+        return `
+          <tr>
+            <td>${escapeHtml(metric.label || metric.key)}</td>
+            <td>${escapeHtml(beforeText)}</td>
+            <td>${escapeHtml(afterText)}</td>
+            <td class="${trendClass}">${escapeHtml(improvement)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderOverallSection(data) {
+      const summary = data.summary || {};
+      const split = data.split || {};
+      const beforeSamples = data.samples?.before || {};
+      const afterSamples = data.samples?.after || {};
+
+      const aggregateLabel = data.scope?.mode === 'all-users'
+        ? `${summary.returnedUsers || 0} users in report`
+        : (data.scope?.userId || 'Single user');
+
+      return `
+        <div class="summary-grid">
+          <div class="stat">
+            <div class="stat-label">Scope</div>
+            <div class="stat-value">${escapeHtml(aggregateLabel)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Split Mode</div>
+            <div class="stat-value" style="font-size:1.1rem;">${escapeHtml(split.mode || '--')}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Before Samples</div>
+            <div class="stat-value">${escapeHtml(beforeSamples.behaviorSessions ?? 0)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">After Samples</div>
+            <div class="stat-value">${escapeHtml(afterSamples.behaviorSessions ?? 0)}</div>
+          </div>
+        </div>
+
+        <h2 class="panel-title">Overall Optimization Impact</h2>
+        <div class="meta">
+          <div class="chip">Before End: ${escapeHtml(split.before?.end || '--')}</div>
+          <div class="chip">After Start: ${escapeHtml(split.after?.start || '--')}</div>
+          <div class="chip">Pivot: ${escapeHtml(split.pivotAt || '--')}</div>
+        </div>
+        <div class="table-wrap report-shell">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Average Metric</th>
+                <th>Before Optimization</th>
+                <th>After Optimization</th>
+                <th>Improvement</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${renderMetricRows(data.metrics, { reportStyle: true })}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderUsersSection(users) {
+      if (!Array.isArray(users) || users.length === 0) {
+        return '';
+      }
+
+      const cards = users.map((user) => `
+        <article class="user-card">
+          <h3>${escapeHtml(user.userId)}</h3>
+          <div class="user-meta">
+            <div class="chip">Mode: ${escapeHtml(user.split?.mode || '--')}</div>
+            <div class="chip">Before: ${escapeHtml(user.samples?.before?.behaviorSessions ?? 0)} sessions</div>
+            <div class="chip">After: ${escapeHtml(user.samples?.after?.behaviorSessions ?? 0)} sessions</div>
+          </div>
+          <div class="table-wrap">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Before</th>
+                  <th>After</th>
+                  <th>Improvement</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${renderMetricRows(user.metrics)}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      `).join('');
+
+      return `
+        <section class="users-section">
+          <h2 class="panel-title">User Breakdown</h2>
+          <div class="users-grid">
+            ${cards}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderData(data) {
+      elements.content.innerHTML = `
+        ${renderOverallSection(data)}
+        ${renderUsersSection(data.users)}
+      `;
+    }
+
+    async function loadResults() {
+      try {
+        const url = buildQueryUrl();
+        setStatus('Loading analytics data...', 'ok');
+        elements.loadButton.disabled = true;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok || data.success === false) {
+          throw new Error(data.error || `Request failed with status ${response.status}`);
+        }
+
+        renderData(data);
+        setStatus('Analytics data loaded.', 'ok');
+      } catch (error) {
+        setStatus(error.message, 'error');
+        elements.content.innerHTML = `
+          <div class="empty-state">
+            ${escapeHtml(error.message)}
+          </div>
+        `;
+      } finally {
+        elements.loadButton.disabled = false;
+      }
+    }
+
+    function resetForm() {
+      elements.apiBase.value = defaultApiBase;
+      elements.userId.value = '';
+      elements.beforeEnd.value = '';
+      elements.afterStart.value = '';
+      elements.pivotAt.value = '';
+      elements.limit.value = '';
+      setMode('single');
+      setStatus('');
+      elements.content.innerHTML = `
+        <div class="empty-state">
+          Run a query to view optimization metrics from the analytics API.
+        </div>
+      `;
+    }
+
+    function applyDemoPreset() {
+      setMode('all');
+      elements.beforeEnd.value = demoPreset.beforeEnd;
+      elements.afterStart.value = demoPreset.afterStart;
+      elements.pivotAt.value = demoPreset.pivotAt;
+      elements.limit.value = demoPreset.limit;
+      setStatus('Demo preset applied. Seed the demo cohort first, then load results.', 'ok');
+    }
+
+    elements.modeSingle.addEventListener('click', () => setMode('single'));
+    elements.modeAll.addEventListener('click', () => setMode('all'));
+    elements.loadButton.addEventListener('click', loadResults);
+    elements.demoButton.addEventListener('click', applyDemoPreset);
+    elements.resetButton.addEventListener('click', resetForm);
+
+    setMode('single');
+  </script>
+</body>
+</html>

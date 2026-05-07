@@ -6,3 +6,4 @@ __pycache__
 *.md
 test_*.py
 bandit_state.json
+

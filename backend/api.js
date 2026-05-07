@@ -60,6 +60,7 @@ const rlFeedbackRouter = require('./routes/rl-feedback');
 const userCategorizationRouter = require('./routes/user-categorization');
 const behaviorRlOptimizationRouter = require('./routes/behavior-rl-optimization');
 const tempUserRouter = require('./routes/temp-user');
+const analyticsRouter = require('./routes/analytics');
 
 // Mount Week 1 routes
 app.use('/api/behavior', behaviorRouter);
@@ -75,6 +76,7 @@ app.use('/api/settings-events', settingsEventsRouter);
 app.use('/api/settings/events', settingsEventsRouter);
 app.use('/api/rl-feedback', rlFeedbackRouter);
 app.use('/api/user-categorization', userCategorizationRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Serve static dashboard files
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));

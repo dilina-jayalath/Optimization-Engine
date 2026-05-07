@@ -6,7 +6,7 @@ const router = express.Router();
 const axios = require('axios');
 const { Feedback, OptimizationEvent } = require('../mongodb/schemas');
 
-const RL_SERVICE_URL = process.env.RL_SERVICE_URL || process.env.PYTHON_RL_URL || 'http://localhost:8000';
+const RL_SERVICE_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
 
 // Guest user IDs that should be rejected from RL operations
 const GUEST_IDS = ['guest', 'anonymous', 'anon', 'unknown'];

@@ -16,7 +16,7 @@ const mongoose = require('mongoose');
 const axios = require('axios');
 const router = express.Router();
 
-const RL_SERVICE_URL = process.env.RL_SERVICE_URL || process.env.PYTHON_RL_URL || 'http://localhost:8000';
+const RL_SERVICE_URL = process.env.PYTHON_RL_URL || 'http://localhost:8000';
 
 // Reference to BehaviorLog from behavior.js
 const BehaviorLog = mongoose.models.BehaviorLog || 
